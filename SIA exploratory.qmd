@@ -4,10 +4,6 @@ format: gfm
 editor: visual
 ---
 
-## Intro
-
-Stable isotopes....
-
 ## Load packages and save formatting preferences
 
 ```{r}
@@ -15,6 +11,7 @@ Stable isotopes....
 library(patchwork)
 library(broom)
 library(tidyverse)
+library(GGally)
 
 my_theme <- theme_minimal() +
   theme(
@@ -57,13 +54,13 @@ head(lab_outputs)
 blood_labs <- lab_outputs %>%
   filter(Sample_type == "Blood") %>%
   mutate(Sample_ID = as.integer(Sample_ID)) %>%
-  left_join(metadata %>% select(Blood_RB, Sex, Life_stage, Date),
+  left_join(metadata %>% select(Blood_RB, Sex, Life_stage, Date, Mass),
             by = c("Sample_ID" = "Blood_RB")) %>%
   mutate(Sample_ID = as.character(Sample_ID))
 
 skin_labs <- lab_outputs %>%
   filter(Sample_type == "Skin") %>%
-  left_join(metadata %>% select(Biopsy_no, Genetics_no, Sex, Life_stage, Date) %>%
+  left_join(metadata %>% select(Biopsy_no, Genetics_no, Sex, Life_stage, Date, Mass) %>%
               pivot_longer(c(Biopsy_no, Genetics_no), values_to = "Sample_ID") %>%
               select(-name),
             by = "Sample_ID")
@@ -79,6 +76,8 @@ SIA_full <- SIA_full %>%
 SIA_full$Date <- as.Date(SIA_full$Date, format = "%d/%m/%Y")
 SIA_full$Year <- year(SIA_full$Date)
 SIA_full$Year <- as.factor(SIA_full$Year)
+SIA_full <- SIA_full %>%
+  mutate(Mass = as.numeric(Mass))
 
 head(SIA_full)
 ```
@@ -97,12 +96,13 @@ SIA_full %>%
     .groups = "drop"
   )
 ```
-
+  
 ## When were samples taken?
 
 ```{r}
 
 SIA_full <- SIA_full %>%
+  mutate(Month_Year = format(Date, "%m-%y")) %>%
   mutate(Month_Year = factor(Month_Year, levels = unique(Month_Year[order(Date)])))
 SIA_full %>%
   ggplot(aes(x = Month_Year)) +
@@ -121,7 +121,17 @@ SIA_full %>%
 #| echo: true
 
 SIA_biopsy<-SIA_full[SIA_full$Sample_type=="Skin",]
+```
 
+## Plot for SIA
+
+```{r}
+SIA_biopsy %>%
+  select(C, N, Mass, Season) %>%
+  ggpairs()
+```
+
+```{r}
 SIA_full %>%
   group_by(Year, Sex) %>%
   summarise(mean_C = mean(C, na.rm = TRUE),
@@ -164,6 +174,11 @@ SIA_full %>%
 
 ```{r}
 #| echo: true
+SIA_biopsy %>%
+  ggplot(aes(x = C, y = N, colour = Season, shape = Sex)) +
+  geom_point(size = 3, alpha = 0.7) +
+  facet_wrap(~Year)
+
 first.plot <- ggplot(data = SIA_biopsy, 
                    mapping = aes(x = C, 
                                  y = N)) + 
@@ -348,7 +363,7 @@ print(ellipse.plot3)
 first.plot <- ggplot(data = SIA_biopsy, 
                    mapping = aes(x = C, 
                                  y = N)) + 
-  geom_point(aes(color = Year), size = 5) +
+  geom_point(aes(color = Year, shape = Season), size = 5) +
   facet_wrap(~Sex)+
   ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
   xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
@@ -362,7 +377,7 @@ classic.first.plot <- first.plot + theme_classic() +
 print(classic.first.plot)
 
 fbmeans <- SIA_biopsy %>% 
-  group_by(Year, Sex) %>% 
+  group_by(Year, Sex, Season) %>% 
   summarise(count = n(),
             mC = mean(C), 
             sdC = sd(C), 
@@ -383,7 +398,7 @@ second.plot <- first.plot +
                  height = 0) + 
   geom_point(data = fbmeans, aes(x = mC, 
                                  y = mN,
-                                 fill = Year), 
+                                 fill = Year, shape = Season), 
              color = "black", shape = 22, size = 5,
              alpha = 0.7, show.legend = FALSE) + 
   coord_equal()
@@ -392,12 +407,36 @@ print(second.plot)
 p.ell <- 0.95
 
 ellipse.plot3 <- first.plot + 
-  stat_ellipse(aes(group =Year, 
+  stat_ellipse(aes(group =interaction(Year, Season), 
                    fill = Year, 
-                   color = Year), 
+                   color = Year,
+                   linetype = Season), 
                alpha = 0.25, 
                level = p.ell,
                type = "t",
                geom = "polygon")
 print(ellipse.plot3)
 ```
+
+## Running models 
+
+```{r}
+#| echo: true
+SIA_biopsy %>% count(Year, Sex, Season)
+
+mC <- lm(C ~ Year + Sex + Season, data = SIA_biopsy)
+summary(mC)
+
+shapiro.test(resid(mC))
+
+par(mfrow = c(2,2))
+plot(mC)
+
+mN <- lm(N ~ Year + Sex + Season, data = SIA_biopsy)
+summary(mN)
+
+shapiro.test(resid(mN))
+
+plot(mN)
+```
+
