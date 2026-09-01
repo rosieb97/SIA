@@ -1,0 +1,76 @@
+---
+title: "SIA exploratory"
+format: html
+editor: visual
+---
+
+## Intro
+
+Stable isotopes....
+
+## Load packages and save formatting preferences
+
+```{r}
+#| include: false
+library(patchwork)
+library(broom)
+library(tidyverse)
+
+my_theme <- theme_minimal() +
+  theme(
+    axis.title.x = element_text(size = 30, margin = margin(t = 20)),
+    axis.title.y = element_text(size = 30, margin = margin(r = 20)),
+    axis.text.x = element_text(size = 24),
+    axis.text.y = element_text(size = 24),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    plot.background = element_blank(),
+    legend.title = element_text(size = 30, face = "bold"),
+    legend.text = element_text(size = 24),
+    strip.text = element_text(size = 30, face = "bold"),
+    axis.line = element_line(colour = "black", linewidth = 0.8)) 
+
+cbf <- c("orange", "#56B4E9", "#009E73", "#F0E442","pink")
+
+```
+
+##Input data and merge into one
+
+```{r}
+#| echo: true
+lab_outputs<-read.csv("Lab_outputs.csv",header=TRUE)
+head(lab_outputs)
+lab_outputs <- lab_outputs[, 1:(ncol(lab_outputs) - 4)]
+
+metadata<-read.csv("Metadata.csv",header=TRUE)
+head(metadata)
+metadata <- metadata[, 1:(ncol(metadata) - 88)]
+
+lab_outputs <- lab_outputs %>%
+  mutate(Sample_ID = case_when(
+    Sample_type == "Blood" ~ sub("^RBC([0-9]+)[a-zA-Z]$", "\\1", Sample_name), 
+    Sample_type == "Skin"  ~ Sample_name,                       
+    TRUE ~ Sample_name
+  ))
+head(lab_outputs)
+
+blood_labs <- lab_outputs %>%
+  filter(Sample_type == "Blood") %>%
+  mutate(Sample_ID = as.integer(Sample_ID)) %>%
+  left_join(metadata %>% select(Blood_RB, Sex, Life_stage, Date),
+            by = c("Sample_ID" = "Blood_RB")) %>%
+  mutate(Sample_ID = as.character(Sample_ID))
+
+skin_labs <- lab_outputs %>%
+  filter(Sample_type == "Skin") %>%
+  left_join(metadata %>% select(Biopsy_no, Genetics_no, Sex, Life_stage, Date) %>%
+              pivot_longer(c(Biopsy_no, Genetics_no), values_to = "Sample_ID") %>%
+              select(-name),
+            by = "Sample_ID")
+
+SIA_full <- bind_rows(blood_labs, skin_labs) %>%
+  select(-Sample_ID)
+head(SIA_full)
+```
+
