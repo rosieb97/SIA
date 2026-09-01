@@ -1,46 +1,28 @@
----
-title: "SIA exploratory"
-format: gfm
-editor: visual
----
+# SIA exploratory
+
 
 ## Intro
 
-Stable isotopes....
+Stable isotopes….
 
 ## Load packages and save formatting preferences
 
-```{r}
-#| include: false
-library(patchwork)
-library(broom)
-library(tidyverse)
-
-my_theme <- theme_minimal() +
-  theme(
-    axis.title.x = element_text(size = 30, margin = margin(t = 20)),
-    axis.title.y = element_text(size = 30, margin = margin(r = 20)),
-    axis.text.x = element_text(size = 24),
-    axis.text.y = element_text(size = 24),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.background = element_blank(),
-    plot.background = element_blank(),
-    legend.title = element_text(size = 30, face = "bold"),
-    legend.text = element_text(size = 24),
-    strip.text = element_text(size = 30, face = "bold"),
-    axis.line = element_line(colour = "black", linewidth = 0.8)) 
-
-cbf <- c("orange", "#56B4E9", "#009E73", "#F0E442","pink")
-
-```
-
 ## Input data and merge into one
 
-```{r}
-#| echo: true
+``` r
 lab_outputs<-read.csv("Lab_outputs.csv",header=TRUE)
 head(lab_outputs)
+```
+
+      Lead Sample_type Sample_name     N      C N_wt C_wt C_N_wt  X X.1 X.2 X.3
+    1   RB       Blood       RBC1a 11.11 -16.23 13.4 48.7    3.6 NA  NA  NA  NA
+    2   RB       Blood       RBC3b 11.58 -16.16 14.2 48.6    3.4 NA  NA  NA  NA
+    3   RB       Blood       RBC4a 10.93 -15.70 13.8 47.7    3.5 NA  NA  NA  NA
+    4   RB       Blood       RBC5a 11.23 -17.09 14.0 48.3    3.4 NA  NA  NA  NA
+    5   RB       Blood       RBC7a 10.94 -17.65 13.9 48.3    3.5 NA  NA  NA  NA
+    6   RB       Blood       RBC8a 11.87 -15.89 14.2 48.6    3.4 NA  NA  NA  NA
+
+``` r
 lab_outputs <- lab_outputs[, 1:(ncol(lab_outputs) - 4)]
 
 metadata<-read.csv("Metadata.csv",header=TRUE)
@@ -53,7 +35,17 @@ lab_outputs <- lab_outputs %>%
     TRUE ~ Sample_name
   ))
 head(lab_outputs)
+```
 
+      Lead Sample_type Sample_name     N      C N_wt C_wt C_N_wt Sample_ID
+    1   RB       Blood       RBC1a 11.11 -16.23 13.4 48.7    3.6         1
+    2   RB       Blood       RBC3b 11.58 -16.16 14.2 48.6    3.4         3
+    3   RB       Blood       RBC4a 10.93 -15.70 13.8 47.7    3.5         4
+    4   RB       Blood       RBC5a 11.23 -17.09 14.0 48.3    3.4         5
+    5   RB       Blood       RBC7a 10.94 -17.65 13.9 48.3    3.5         7
+    6   RB       Blood       RBC8a 11.87 -15.89 14.2 48.6    3.4         8
+
+``` r
 blood_labs <- lab_outputs %>%
   filter(Sample_type == "Blood") %>%
   mutate(Sample_ID = as.integer(Sample_ID)) %>%
@@ -83,9 +75,24 @@ SIA_full$Year <- as.factor(SIA_full$Year)
 head(SIA_full)
 ```
 
+      Lead Sample_type Sample_name     N      C N_wt C_wt C_N_wt Sex Life_stage
+    1   RB       Blood       RBC1a 11.11 -16.23 13.4 48.7    3.6   M      Adult
+    2   RB       Blood       RBC3b 11.58 -16.16 14.2 48.6    3.4   M      Adult
+    3   RB       Blood       RBC4a 10.93 -15.70 13.8 47.7    3.5   M      Adult
+    4   RB       Blood       RBC5a 11.23 -17.09 14.0 48.3    3.4   F      Adult
+    5   RB       Blood       RBC7a 10.94 -17.65 13.9 48.3    3.5   M      Adult
+    6   RB       Blood       RBC8a 11.87 -15.89 14.2 48.6    3.4   M      Adult
+            Date Month Season Year
+    1 2024-08-12     8    Dry 2024
+    2 2024-08-15     8    Dry 2024
+    3 2024-08-16     8    Dry 2024
+    4 2024-08-17     8    Dry 2024
+    5 2024-08-17     8    Dry 2024
+    6 2024-08-18     8    Dry 2024
+
 ## Summmary table by sample type
 
-```{r}
+``` r
 SIA_full %>%
   group_by(Sample_type, Sex, Season) %>%
   summarise(
@@ -98,11 +105,21 @@ SIA_full %>%
   )
 ```
 
+    # A tibble: 8 × 8
+      Sample_type Sex   Season mean_C  sd_C mean_N  sd_N     n
+      <chr>       <chr> <chr>   <dbl> <dbl>  <dbl> <dbl> <int>
+    1 Blood       F     Dry     -16.7  0.32   10.6  0.38    13
+    2 Blood       F     Wet     -16.6  0.23   10.7  0.37    14
+    3 Blood       M     Dry     -16.3  0.6    11.4  0.31    15
+    4 Blood       M     Wet     -16.4  0.59   11.0  0.5      9
+    5 Skin        F     Dry     -16.6  0.79   12.4  0.46    73
+    6 Skin        F     Wet     -15.6  1.05   12.0  0.8     21
+    7 Skin        M     Dry     -16.1  1.05   12.5  0.65    45
+    8 Skin        M     Wet     -15.3  1.34   12.2  0.68    15
+
 ## Exploring inter-annual trends in biopsy data
 
-```{r}
-#| echo: true
-
+``` r
 SIA_biopsy<-SIA_full[SIA_full$Sample_type=="Skin",]
 
 SIA_full %>%
@@ -122,7 +139,11 @@ SIA_full %>%
   ) +
   my_theme + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-4-1.png)
+
+``` r
 SIA_full %>%
   group_by(Year, Sex) %>%
   summarise(mean_N = mean(N, na.rm = TRUE),
@@ -140,13 +161,13 @@ SIA_full %>%
   ) +
   my_theme + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 ```
+
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-4-2.png)
 
 ## Isoscape plots by year
 
-```{r}
-#| echo: true
+``` r
 first.plot <- ggplot(data = SIA_biopsy, 
                    mapping = aes(x = C, 
                                  y = N)) + 
@@ -161,7 +182,11 @@ classic.first.plot <- first.plot + theme_classic() +
   theme(axis.ticks.length = unit(-0.2, "cm")) +
   scale_colour_viridis_d(end = 0.9)
 print(classic.first.plot)
+```
 
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-5-1.png)
+
+``` r
 fbmeans <- SIA_biopsy %>% 
   group_by(Year) %>% 
   summarise(count = n(),
@@ -170,7 +195,18 @@ fbmeans <- SIA_biopsy %>%
             mN = mean(N), 
             sdN = sd(N) )
 print(fbmeans)
+```
 
+    # A tibble: 5 × 6
+      Year  count    mC   sdC    mN   sdN
+      <fct> <int> <dbl> <dbl> <dbl> <dbl>
+    1 2018     37 -16.7 0.849  12.4 0.675
+    2 2019     26 -16.5 0.602  12.5 0.464
+    3 2020     41 -16.9 0.651  12.4 0.413
+    4 2024     10 -14.9 0.610  12.9 0.314
+    5 2025     40 -15.1 0.750  11.9 0.598
+
+``` r
 second.plot <- first.plot + 
   geom_errorbar(data = fbmeans, 
                 mapping = aes(x = mC, y = mN,
@@ -188,8 +224,20 @@ second.plot <- first.plot +
              color = "black", shape = 22, size = 5,
              alpha = 0.7, show.legend = FALSE) + 
   coord_equal()
-print(second.plot)
+```
 
+    Warning: `geom_errorbarh()` was deprecated in ggplot2 4.0.0.
+    ℹ Please use the `orientation` argument of `geom_errorbar()` instead.
+
+``` r
+print(second.plot)
+```
+
+    `height` was translated to `width`.
+
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-5-2.png)
+
+``` r
 p.ell <- 0.95
 
 ellipse.plot3 <- first.plot + 
@@ -203,10 +251,11 @@ ellipse.plot3 <- first.plot +
 print(ellipse.plot3)
 ```
 
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-5-3.png)
+
 ## Isoscape plots by sex
 
-```{r}
-#| echo: true
+``` r
 first.plot <- ggplot(data = SIA_biopsy, 
                    mapping = aes(x = C, 
                                  y = N)) + 
@@ -221,7 +270,11 @@ classic.first.plot <- first.plot + theme_classic() +
   theme(axis.ticks.length = unit(-0.2, "cm")) +
   scale_colour_viridis_d(end = 0.9)
 print(classic.first.plot)
+```
 
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-6-1.png)
+
+``` r
 fbmeans <- SIA_biopsy %>% 
   group_by(Sex) %>% 
   summarise(count = n(),
@@ -230,7 +283,15 @@ fbmeans <- SIA_biopsy %>%
             mN = mean(N), 
             sdN = sd(N) )
 print(fbmeans)
+```
 
+    # A tibble: 2 × 6
+      Sex   count    mC   sdC    mN   sdN
+      <chr> <int> <dbl> <dbl> <dbl> <dbl>
+    1 F        94 -16.4 0.958  12.3 0.576
+    2 M        60 -15.9 1.16   12.4 0.663
+
+``` r
 second.plot <- first.plot + 
   geom_errorbar(data = fbmeans, 
                 mapping = aes(x = mC, y = mN,
@@ -249,7 +310,13 @@ second.plot <- first.plot +
              alpha = 0.7, show.legend = FALSE) + 
   coord_equal()
 print(second.plot)
+```
 
+    `height` was translated to `width`.
+
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-6-2.png)
+
+``` r
 p.ell <- 0.95
 
 ellipse.plot3 <- first.plot + 
@@ -262,3 +329,5 @@ ellipse.plot3 <- first.plot +
                geom = "polygon")
 print(ellipse.plot3)
 ```
+
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-6-3.png)
