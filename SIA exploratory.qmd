@@ -35,7 +35,7 @@ cbf <- c("orange", "#56B4E9", "#009E73", "#F0E442","pink")
 
 ```
 
-##Input data and merge into one
+## Input data and merge into one
 
 ```{r}
 #| echo: true
@@ -71,6 +71,80 @@ skin_labs <- lab_outputs %>%
 
 SIA_full <- bind_rows(blood_labs, skin_labs) %>%
   select(-Sample_ID)
+
+SIA_full <- SIA_full %>%
+  mutate(
+    Month = month(Date),
+    Season = if_else(Month %in% 11:12 | Month %in% 1:4, "Wet", "Dry")
+  )
+SIA_full$Date <- as.Date(SIA_full$Date, format = "%d/%m/%Y")
+SIA_full$Year <- year(SIA_full$Date)
+
 head(SIA_full)
+```
+
+## Summmary table by sample type
+
+```{r}
+SIA_full %>%
+  group_by(Sample_type, Sex, Season) %>%
+  summarise(
+    mean_C = round(mean(C, na.rm = TRUE), 2),
+    sd_C   = round(sd(C, na.rm = TRUE), 2),
+    mean_N = round(mean(N, na.rm = TRUE), 2),
+    sd_N   = round(sd(N, na.rm = TRUE), 2),
+    n      = n(),
+    .groups = "drop"
+  )
+```
+
+## Exploring inter-annual trends in biopsy data
+```{r}
+#| echo: true
+
+SIA_biopsy<-SIA_full[SIA_full$Sample_type=="Skin",]
+
+SIA_full %>%
+  group_by(Year, Season) %>%
+  summarise(mean_C = mean(C, na.rm = TRUE),
+            se_C = sd(C, na.rm = TRUE) / sqrt(n()),
+            n = n(),
+            .groups = "drop") %>%
+  ggplot(aes(x = Year, y = mean_C, colour = Season, group = Season)) +
+  geom_point(size = 5) +
+  geom_errorbar(aes(ymin = mean_C - se_C, ymax = mean_C + se_C), width = 0.3, alpha = 0.6)+
+  scale_colour_manual(values = c("#4A90C4", "darkgreen")) +
+  scale_x_continuous(breaks = seq(min(SIA_full$Year, na.rm = TRUE), 
+                                   max(SIA_full$Year, na.rm = TRUE), 
+                                   by = 1))+
+  labs(
+    x = "Year",
+    y = "Mean dC",
+    colour = "Season"
+  ) +
+  my_theme + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+SIA_full %>%
+  group_by(Year, Season) %>%
+  summarise(mean_N = mean(N, na.rm = TRUE),
+            se_N = sd(N, na.rm = TRUE) / sqrt(n()),
+            n = n(),
+            .groups = "drop") %>%
+  ggplot(aes(x = Year, y = mean_N, colour = Season, group = Season)) +
+  geom_point(size = 5) +
+  geom_errorbar(aes(ymin = mean_N - se_N, ymax = mean_N + se_N), width = 0.3, alpha = 0.6)+
+  scale_colour_manual(values = c("#4A90C4", "darkgreen")) +  
+  scale_x_continuous(breaks = seq(min(SIA_full$Year, na.rm = TRUE), 
+                                   max(SIA_full$Year, na.rm = TRUE), 
+                                   by = 1))+
+  labs(
+    x = "Year",
+    y = "Mean dN",
+    colour = "Season"
+  ) +
+  my_theme + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
 
