@@ -6,6 +6,7 @@ library(ggplot2)
 library(broom)
 library(lubridate)
 
+#PASSWORD FOR GIT
 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
 
 ##Visualisations 
