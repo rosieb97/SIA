@@ -44,7 +44,6 @@ head(lab_outputs)
 lab_outputs <- lab_outputs[, 1:(ncol(lab_outputs) - 4)]
 
 metadata<-read.csv("Metadata.csv",header=TRUE)
-head(metadata)
 metadata <- metadata[, 1:(ncol(metadata) - 88)]
 
 lab_outputs <- lab_outputs %>%
@@ -79,6 +78,7 @@ SIA_full <- SIA_full %>%
   )
 SIA_full$Date <- as.Date(SIA_full$Date, format = "%d/%m/%Y")
 SIA_full$Year <- year(SIA_full$Date)
+SIA_full$Year <- as.factor(SIA_full$Year)
 
 head(SIA_full)
 ```
@@ -99,24 +99,22 @@ SIA_full %>%
 ```
 
 ## Exploring inter-annual trends in biopsy data
+
 ```{r}
 #| echo: true
 
 SIA_biopsy<-SIA_full[SIA_full$Sample_type=="Skin",]
 
 SIA_full %>%
-  group_by(Year, Season) %>%
+  group_by(Year, Sex) %>%
   summarise(mean_C = mean(C, na.rm = TRUE),
             se_C = sd(C, na.rm = TRUE) / sqrt(n()),
             n = n(),
             .groups = "drop") %>%
-  ggplot(aes(x = Year, y = mean_C, colour = Season, group = Season)) +
+  ggplot(aes(x = Year, y = mean_C, colour = Sex, group = Sex)) +
   geom_point(size = 5) +
   geom_errorbar(aes(ymin = mean_C - se_C, ymax = mean_C + se_C), width = 0.3, alpha = 0.6)+
   scale_colour_manual(values = c("#4A90C4", "darkgreen")) +
-  scale_x_continuous(breaks = seq(min(SIA_full$Year, na.rm = TRUE), 
-                                   max(SIA_full$Year, na.rm = TRUE), 
-                                   by = 1))+
   labs(
     x = "Year",
     y = "Mean dC",
@@ -126,18 +124,15 @@ SIA_full %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 SIA_full %>%
-  group_by(Year, Season) %>%
+  group_by(Year, Sex) %>%
   summarise(mean_N = mean(N, na.rm = TRUE),
             se_N = sd(N, na.rm = TRUE) / sqrt(n()),
             n = n(),
             .groups = "drop") %>%
-  ggplot(aes(x = Year, y = mean_N, colour = Season, group = Season)) +
+  ggplot(aes(x = Year, y = mean_N, colour = Sex, group = Sex)) +
   geom_point(size = 5) +
   geom_errorbar(aes(ymin = mean_N - se_N, ymax = mean_N + se_N), width = 0.3, alpha = 0.6)+
   scale_colour_manual(values = c("#4A90C4", "darkgreen")) +  
-  scale_x_continuous(breaks = seq(min(SIA_full$Year, na.rm = TRUE), 
-                                   max(SIA_full$Year, na.rm = TRUE), 
-                                   by = 1))+
   labs(
     x = "Year",
     y = "Mean dN",
@@ -148,3 +143,122 @@ SIA_full %>%
 
 ```
 
+## Isoscape plots by year
+
+```{r}
+#| echo: true
+first.plot <- ggplot(data = SIA_biopsy, 
+                   mapping = aes(x = C, 
+                                 y = N)) + 
+  geom_point(aes(color = Year, shape = Year), size = 5) +
+  ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
+  xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
+  theme(text = element_text(size=20))
+
+classic.first.plot <- first.plot + theme_classic() + 
+  theme(text = element_text(size=35)) + 
+  coord_equal() + 
+  theme(axis.ticks.length = unit(-0.2, "cm")) +
+  scale_colour_viridis_d(end = 0.9)
+print(classic.first.plot)
+
+fbmeans <- SIA_biopsy %>% 
+  group_by(Year) %>% 
+  summarise(count = n(),
+            mC = mean(C), 
+            sdC = sd(C), 
+            mN = mean(N), 
+            sdN = sd(N) )
+print(fbmeans)
+
+second.plot <- first.plot + 
+  geom_errorbar(data = fbmeans, 
+                mapping = aes(x = mC, y = mN,
+                              ymin = mN - 1.96*sdN, 
+                              ymax = mN + 1.96*sdN), 
+                width = 0)+
+  geom_errorbarh(data = fbmeans, 
+                 mapping = aes(x = mC, y = mN,
+                               xmin = mC - 1.96*sdC,
+                               xmax = mC + 1.96*sdC),
+                 height = 0) + 
+  geom_point(data = fbmeans, aes(x = mC, 
+                                 y = mN,
+                                 fill = Year), 
+             color = "black", shape = 22, size = 5,
+             alpha = 0.7, show.legend = FALSE) + 
+  coord_equal()
+print(second.plot)
+
+p.ell <- 0.95
+
+ellipse.plot3 <- first.plot + 
+  stat_ellipse(aes(group =Year, 
+                   fill = Year, 
+                   color = Year), 
+               alpha = 0.25, 
+               level = p.ell,
+               type = "t",
+               geom = "polygon")
+print(ellipse.plot3)
+```
+
+## Isoscape plots by sex
+
+```{r}
+#| echo: true
+first.plot <- ggplot(data = SIA_biopsy, 
+                   mapping = aes(x = C, 
+                                 y = N)) + 
+  geom_point(aes(color = Sex, shape = Sex), size = 5) +
+  ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
+  xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
+  theme(text = element_text(size=20))
+
+classic.first.plot <- first.plot + theme_classic() + 
+  theme(text = element_text(size=35)) + 
+  coord_equal() + 
+  theme(axis.ticks.length = unit(-0.2, "cm")) +
+  scale_colour_viridis_d(end = 0.9)
+print(classic.first.plot)
+
+fbmeans <- SIA_biopsy %>% 
+  group_by(Sex) %>% 
+  summarise(count = n(),
+            mC = mean(C), 
+            sdC = sd(C), 
+            mN = mean(N), 
+            sdN = sd(N) )
+print(fbmeans)
+
+second.plot <- first.plot + 
+  geom_errorbar(data = fbmeans, 
+                mapping = aes(x = mC, y = mN,
+                              ymin = mN - 1.96*sdN, 
+                              ymax = mN + 1.96*sdN), 
+                width = 0)+
+  geom_errorbarh(data = fbmeans, 
+                 mapping = aes(x = mC, y = mN,
+                               xmin = mC - 1.96*sdC,
+                               xmax = mC + 1.96*sdC),
+                 height = 0) + 
+  geom_point(data = fbmeans, aes(x = mC, 
+                                 y = mN,
+                                 fill = Sex), 
+             color = "black", shape = 22, size = 5,
+             alpha = 0.7, show.legend = FALSE) + 
+  coord_equal()
+print(second.plot)
+
+p.ell <- 0.95
+
+ellipse.plot3 <- first.plot + 
+  stat_ellipse(aes(group =Sex, 
+                   fill = Sex, 
+                   color = Sex), 
+               alpha = 0.25, 
+               level = p.ell,
+               type = "t",
+               geom = "polygon")
+print(ellipse.plot3)
+```
