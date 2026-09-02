@@ -76,17 +76,6 @@ head(SIA_full)
 
 ###Visualise data
 
-SIA_full %>%
-  group_by(Sex, Season) %>%
-  summarise(
-    mean_C = mean(C, na.rm = TRUE),
-    sd_C = sd(C, na.rm = TRUE),
-    mean_N = mean(N, na.rm = TRUE),
-    sd_N = sd(N, na.rm = TRUE),
-    n = n(),
-    .groups = "drop"
-  )
-
 ##First with biopsies
 
 SIA_biopsy<-SIA_full[SIA_full$Sample_type=="Skin",]
@@ -179,14 +168,13 @@ SIA_full %>%
 SIA_full$Date <- as.Date(SIA_full$Date, format = "%d/%m/%Y")
 SIA_full$Year <- year(SIA_full$Date)
 
-C_summary <- SIA_full %>%
+SIA_full %>%
   group_by(Year, Season) %>%
   summarise(mean_C = mean(C, na.rm = TRUE),
             se_C = sd(C, na.rm = TRUE) / sqrt(n()),
-            n = n()) %>%
-  ungroup()
-
-ggplot(C_summary, aes(x = Year, y = mean_C, colour = Season, group = Season)) +
+            n = n(),
+            .groups = "drop") %>%
+  ggplot(aes(x = Year, y = mean_C, colour = Season, group = Season)) +
   geom_point(size = 5) +
   geom_errorbar(aes(ymin = mean_C - se_C, ymax = mean_C + se_C), width = 0.3, alpha = 0.6)+
   scale_colour_manual(values = c("#4A90C4", "darkgreen")) +
@@ -194,18 +182,15 @@ ggplot(C_summary, aes(x = Year, y = mean_C, colour = Season, group = Season)) +
     x = "Year",
     y = "Mean dC",
     colour = "Season"
-  ) +
-  theme_bw() + my_theme
+  ) + my_theme
 
-
-N_summary <- SIA_full %>%
+SIA_full %>%
   group_by(Year, Season) %>%
   summarise(mean_N = mean(N, na.rm = TRUE),
             se_N = sd(N, na.rm = TRUE) / sqrt(n()),
-            n = n()) %>%
-  ungroup()
-
-ggplot(N_summary, aes(x = Year, y = mean_N, colour = Season, group = Season)) +
+            n = n(),
+            .groups = "drop") %>%
+  ggplot(aes(x = Year, y = mean_N, colour = Season, group = Season)) +
   geom_point(size = 5) +
   geom_errorbar(aes(ymin = mean_N - se_N, ymax = mean_N + se_N), width = 0.3, alpha = 0.6)+
   scale_colour_manual(values = c("#4A90C4", "darkgreen")) +
@@ -213,8 +198,7 @@ ggplot(N_summary, aes(x = Year, y = mean_N, colour = Season, group = Season)) +
     x = "Year",
     y = "Mean dN",
     colour = "Season"
-  ) +
-  theme_bw() +my_theme
+  ) +my_theme
 
 
 ##Short-term trends

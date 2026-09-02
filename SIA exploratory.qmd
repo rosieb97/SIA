@@ -42,6 +42,8 @@ lab_outputs <- lab_outputs[, 1:(ncol(lab_outputs) - 4)]
 
 metadata<-read.csv("Metadata.csv",header=TRUE)
 metadata <- metadata[, 1:(ncol(metadata) - 88)]
+metadata <- metadata %>%
+  mutate(Turtle_ID = row_number())
 
 lab_outputs <- lab_outputs %>%
   mutate(Sample_ID = case_when(
@@ -54,13 +56,13 @@ head(lab_outputs)
 blood_labs <- lab_outputs %>%
   filter(Sample_type == "Blood") %>%
   mutate(Sample_ID = as.integer(Sample_ID)) %>%
-  left_join(metadata %>% select(Blood_RB, Sex, Life_stage, Date, Mass),
+  left_join(metadata %>% select(Blood_RB, Sex, Life_stage, Date, Mass, Adipose_perc,Turtle_ID),
             by = c("Sample_ID" = "Blood_RB")) %>%
   mutate(Sample_ID = as.character(Sample_ID))
 
 skin_labs <- lab_outputs %>%
   filter(Sample_type == "Skin") %>%
-  left_join(metadata %>% select(Biopsy_no, Genetics_no, Sex, Life_stage, Date, Mass) %>%
+  left_join(metadata %>% select(Biopsy_no, Genetics_no, Sex, Life_stage, Date, Mass,Adipose_perc,Turtle_ID) %>%
               pivot_longer(c(Biopsy_no, Genetics_no), values_to = "Sample_ID") %>%
               select(-name),
             by = "Sample_ID")
@@ -132,7 +134,7 @@ SIA_biopsy %>%
 ```
 
 ```{r}
-SIA_full %>%
+SIA_biopsy %>%
   group_by(Year, Sex) %>%
   summarise(mean_C = mean(C, na.rm = TRUE),
             se_C = sd(C, na.rm = TRUE) / sqrt(n()),
@@ -145,12 +147,12 @@ SIA_full %>%
   labs(
     x = "Year",
     y = "Mean dC",
-    colour = "Season"
+    colour = "Sex"
   ) +
   my_theme + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-SIA_full %>%
+SIA_biopsy %>%
   group_by(Year, Sex) %>%
   summarise(mean_N = mean(N, na.rm = TRUE),
             se_N = sd(N, na.rm = TRUE) / sqrt(n()),
@@ -163,7 +165,7 @@ SIA_full %>%
   labs(
     x = "Year",
     y = "Mean dN",
-    colour = "Season"
+    colour = "Sex"
   ) +
   my_theme + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -438,5 +440,499 @@ summary(mN)
 shapiro.test(resid(mN))
 
 plot(mN)
+
+mC <- lm(C ~ Year + Sex, data = SIA_biopsy)
+summary(mC)
+
+shapiro.test(resid(mC))
+
+par(mfrow = c(2,2))
+plot(mC)
+
+mN <- lm(N ~ Year + Sex, data = SIA_biopsy)
+summary(mN)
+
+shapiro.test(resid(mN))
+
+plot(mN)
 ```
 
+```{r}
+#| echo: true
+
+SIA_biopsy %>%
+  ggplot(aes(x = C, y = Mass)) +
+  geom_point(size = 5)
+
+SIA_biopsy %>%
+  ggplot(aes(x = N, y = Mass)) +
+  geom_point(size = 5)
+```
+
+
+## Next on the list is repeating this for blood samples AND tissue comparison AND considering the above analysis and whether the sample is actually representative of wet/dry
+
+##Consider not using season since turnover time is likely longer than a season BUT if we can validate against eDNA we may be able to infer expected turnover time
+
+##Blood turnover expected 3-5 months and skin could be 3-12 months (Seminoff et al., 2007)
+
+## Exploring inter-annual trends in biopsy data
+
+```{r}
+#| echo: true
+
+SIA_blood<-SIA_full[SIA_full$Sample_type=="Blood",]
+```
+
+## Plot for SIA
+
+```{r}
+SIA_blood %>%
+  select(C, N, Mass, Season) %>%
+  ggpairs()
+```
+
+```{r}
+
+SIA_blood %>%
+  group_by(Month_Year, Sex) %>%
+  summarise(mean_C = mean(C, na.rm = TRUE),
+            se_C = sd(C, na.rm = TRUE) / sqrt(n()),
+            n = n(),
+            .groups = "drop") %>%
+  ggplot(aes(x = Month_Year, y = mean_C, colour = Sex, group = Sex)) +
+  geom_point(size = 5) +
+  geom_errorbar(aes(ymin = mean_C - se_C, ymax = mean_C + se_C), width = 0.3, alpha = 0.6)+
+  scale_colour_manual(values = c("#4A90C4", "darkgreen")) +
+  labs(
+    x = "Month-Year",
+    y = "Mean dC",
+    colour = "Sex"
+  ) +
+  my_theme + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+SIA_blood %>%
+  group_by(Month_Year, Sex) %>%
+  summarise(mean_N = mean(N, na.rm = TRUE),
+            se_N = sd(N, na.rm = TRUE) / sqrt(n()),
+            n = n(),
+            .groups = "drop") %>%
+  ggplot(aes(x = Month_Year, y = mean_N, colour = Sex, group = Sex)) +
+  geom_point(size = 5) +
+  geom_errorbar(aes(ymin = mean_N - se_N, ymax = mean_N + se_N), width = 0.3, alpha = 0.6)+
+  scale_colour_manual(values = c("#4A90C4", "darkgreen")) +  
+  labs(
+    x = "Month-Year",
+    y = "Mean dN",
+    colour = "Sex"
+  ) +
+  my_theme + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+## Isoscape plots by season
+
+```{r}
+#| echo: true
+SIA_blood %>%
+  ggplot(aes(x = C, y = N, colour = Season, shape = Season)) +
+  geom_point(size = 3, alpha = 0.7) +
+  facet_wrap(~Season)
+
+first.plot <- ggplot(data = SIA_blood, 
+                   mapping = aes(x = C, 
+                                 y = N)) + 
+  geom_point(aes(color = Season, shape = Season), size = 5) +
+  ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
+  xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
+  theme(text = element_text(size=20))
+
+classic.first.plot <- first.plot + theme_classic() + 
+  theme(text = element_text(size=35)) + 
+  coord_equal() + 
+  theme(axis.ticks.length = unit(-0.2, "cm")) +
+  scale_colour_viridis_d(end = 0.9)
+print(classic.first.plot)
+
+fbmeans <- SIA_blood %>% 
+  group_by(Season) %>% 
+  summarise(count = n(),
+            mC = mean(C), 
+            sdC = sd(C), 
+            mN = mean(N), 
+            sdN = sd(N) )
+print(fbmeans)
+
+second.plot <- first.plot + 
+  geom_errorbar(data = fbmeans, 
+                mapping = aes(x = mC, y = mN,
+                              ymin = mN - 1.96*sdN, 
+                              ymax = mN + 1.96*sdN), 
+                width = 0)+
+  geom_errorbarh(data = fbmeans, 
+                 mapping = aes(x = mC, y = mN,
+                               xmin = mC - 1.96*sdC,
+                               xmax = mC + 1.96*sdC),
+                 height = 0) + 
+  geom_point(data = fbmeans, aes(x = mC, 
+                                 y = mN,
+                                 fill = Season), 
+             color = "black", shape = 22, size = 5,
+             alpha = 0.7, show.legend = FALSE) + 
+  coord_equal()
+print(second.plot)
+
+p.ell <- 0.95
+
+ellipse.plot3 <- first.plot + 
+  stat_ellipse(aes(group =Season, 
+                   fill = Season, 
+                   color = Season), 
+               alpha = 0.25, 
+               level = p.ell,
+               type = "t",
+               geom = "polygon")
+print(ellipse.plot3)
+```
+
+## Isoscape plots by sex
+
+```{r}
+#| echo: true
+first.plot <- ggplot(data = SIA_blood, 
+                   mapping = aes(x = C, 
+                                 y = N)) + 
+  geom_point(aes(color = Sex, shape = Sex), size = 5) +
+  ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
+  xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
+  theme(text = element_text(size=20))
+
+classic.first.plot <- first.plot + theme_classic() + 
+  theme(text = element_text(size=35)) + 
+  coord_equal() + 
+  theme(axis.ticks.length = unit(-0.2, "cm")) +
+  scale_colour_viridis_d(end = 0.9)
+print(classic.first.plot)
+
+fbmeans <- SIA_blood %>% 
+  group_by(Sex) %>% 
+  summarise(count = n(),
+            mC = mean(C), 
+            sdC = sd(C), 
+            mN = mean(N), 
+            sdN = sd(N) )
+print(fbmeans)
+
+second.plot <- first.plot + 
+  geom_errorbar(data = fbmeans, 
+                mapping = aes(x = mC, y = mN,
+                              ymin = mN - 1.96*sdN, 
+                              ymax = mN + 1.96*sdN), 
+                width = 0)+
+  geom_errorbarh(data = fbmeans, 
+                 mapping = aes(x = mC, y = mN,
+                               xmin = mC - 1.96*sdC,
+                               xmax = mC + 1.96*sdC),
+                 height = 0) + 
+  geom_point(data = fbmeans, aes(x = mC, 
+                                 y = mN,
+                                 fill = Sex), 
+             color = "black", shape = 22, size = 5,
+             alpha = 0.7, show.legend = FALSE) + 
+  coord_equal()
+print(second.plot)
+
+p.ell <- 0.95
+
+ellipse.plot3 <- first.plot + 
+  stat_ellipse(aes(group =Sex, 
+                   fill = Sex, 
+                   color = Sex), 
+               alpha = 0.25, 
+               level = p.ell,
+               type = "t",
+               geom = "polygon")
+print(ellipse.plot3)
+```
+
+## Isoscape plots by year + sex
+
+```{r}
+#| echo: true
+first.plot <- ggplot(data = SIA_blood, 
+                   mapping = aes(x = C, 
+                                 y = N)) + 
+  geom_point(aes(color = Season), size = 5) +
+  facet_wrap(~Sex)+
+  ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
+  xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
+  theme(text = element_text(size=20))
+
+classic.first.plot <- first.plot + theme_classic() + 
+  theme(text = element_text(size=35)) + 
+  coord_equal() + 
+  theme(axis.ticks.length = unit(-0.2, "cm")) +
+  scale_colour_viridis_d(end = 0.9)
+print(classic.first.plot)
+
+fbmeans <- SIA_biopsy %>% 
+  group_by(Year, Sex) %>% 
+  summarise(count = n(),
+            mC = mean(C), 
+            sdC = sd(C), 
+            mN = mean(N), 
+            sdN = sd(N) )
+print(fbmeans)
+
+second.plot <- first.plot + 
+  geom_errorbar(data = fbmeans, 
+                mapping = aes(x = mC, y = mN,
+                              ymin = mN - 1.96*sdN, 
+                              ymax = mN + 1.96*sdN), 
+                width = 0)+
+  geom_errorbarh(data = fbmeans, 
+                 mapping = aes(x = mC, y = mN,
+                               xmin = mC - 1.96*sdC,
+                               xmax = mC + 1.96*sdC),
+                 height = 0) + 
+  geom_point(data = fbmeans, aes(x = mC, 
+                                 y = mN,
+                                 fill = Year), 
+             color = "black", shape = 22, size = 5,
+             alpha = 0.7, show.legend = FALSE) + 
+  coord_equal()
+print(second.plot)
+
+p.ell <- 0.95
+
+ellipse.plot3 <- first.plot + 
+  stat_ellipse(aes(group =Year, 
+                   fill = Year, 
+                   color = Year), 
+               alpha = 0.25, 
+               level = p.ell,
+               type = "t",
+               geom = "polygon")
+print(ellipse.plot3)
+```
+
+## Isoscape plots by year + sex + season
+
+```{r}
+#| echo: true
+first.plot <- ggplot(data = SIA_blood, 
+                   mapping = aes(x = C, 
+                                 y = N)) + 
+  geom_point(aes(color = Month_Year), size = 5) +
+  facet_wrap(~Sex)+
+  ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
+  xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
+  theme(text = element_text(size=20))
+
+classic.first.plot <- first.plot + theme_classic() + 
+  theme(text = element_text(size=35)) + 
+  coord_equal() + 
+  theme(axis.ticks.length = unit(-0.2, "cm")) +
+  scale_colour_viridis_d(end = 0.9)
+print(classic.first.plot)
+
+fbmeans <- SIA_blood %>% 
+  group_by(Month_Year, Sex) %>% 
+  summarise(count = n(),
+            mC = mean(C), 
+            sdC = sd(C), 
+            mN = mean(N), 
+            sdN = sd(N) )
+print(fbmeans)
+
+second.plot <- first.plot + 
+  geom_errorbar(data = fbmeans, 
+                mapping = aes(x = mC, y = mN,
+                              ymin = mN - 1.96*sdN, 
+                              ymax = mN + 1.96*sdN), 
+                width = 0)+
+  geom_errorbarh(data = fbmeans, 
+                 mapping = aes(x = mC, y = mN,
+                               xmin = mC - 1.96*sdC,
+                               xmax = mC + 1.96*sdC),
+                 height = 0) + 
+  geom_point(data = fbmeans, aes(x = mC, 
+                                 y = mN,
+                                 fill = Month_Year), 
+             color = "black", shape = 22, size = 5,
+             alpha = 0.7, show.legend = FALSE) + 
+  coord_equal()
+print(second.plot)
+
+p.ell <- 0.95
+
+ellipse.plot3 <- first.plot + 
+  stat_ellipse(aes(group = Month_Year, 
+                   fill = Month_Year, 
+                   color = Month_Year,
+                   linetype = Month_Year), 
+               alpha = 0.25, 
+               level = p.ell,
+               type = "t",
+               geom = "polygon")
+print(ellipse.plot3)
+```
+
+## Running models 
+
+```{r}
+#| echo: true
+SIA_blood %>% count(Year, Sex, Season)
+
+mC <- lm(C ~ Year + Sex + Season, data = SIA_blood)
+summary(mC)
+
+shapiro.test(resid(mC))
+
+par(mfrow = c(2,2))
+plot(mC)
+
+mN <- lm(N ~ Year + Sex + Season, data = SIA_blood)
+summary(mN)
+
+shapiro.test(resid(mN))
+
+plot(mN)
+
+```
+```{r}
+#| echo: true
+
+SIA_blood %>%
+  ggplot(aes(x = C, y = Mass)) +
+  geom_point(size = 5)
+
+SIA_blood %>%
+  ggplot(aes(x = N, y = Mass)) +
+  geom_point(size = 5)
+
+summary(lm(C ~ Mass + Season, data = SIA_blood))
+summary(lm(N ~ Mass +  Season, data = SIA_blood))
+
+#Significant effect of mass for nitrogen, both significant when you take out sex
+
+SIA_blood %>%
+  ggplot(aes(x = C, y = Adipose_perc)) +
+  geom_point(size = 5)
+
+SIA_blood %>%
+  ggplot(aes(x = N, y = Adipose_perc)) +
+  geom_point(size = 5)
+
+summary(lm(C ~ Adipose_perc + Sex, data = SIA_blood))
+summary(lm(N ~ Adipose_perc +  Sex, data = SIA_blood))
+```
+
+## Can also try with reproductive state, once validated and tidied up
+
+##Tissue comparison for those with both biopsy and bloods
+
+```{r}
+paired_ids <- SIA_full %>%
+  group_by(Turtle_ID) %>%
+  summarise(has_skin = any(Sample_type == "Skin"),
+            has_blood = any(Sample_type == "Blood")) %>%
+  filter(has_skin & has_blood) %>%
+  pull(Turtle_ID)
+
+SIA_both <- SIA_full %>%
+  filter(Turtle_ID %in% paired_ids)
+
+n_distinct(SIA_both$Turtle_ID)
+
+head(SIA_both)
+
+#TDFS
+
+discrim <- tribble(
+  ~Sample_type, ~Isotope, ~TDF, ~TDF_sd,
+  "Blood", "C", 0.46, 0.35,
+  "Blood", "N", 1.49, 0.76,
+  "Skin",  "C", 2.26, 0.61,
+  "Skin",  "N", 1.85, 0.50
+)
+
+SIA_both_corrected <- SIA_both %>%
+  left_join(discrim %>% filter(Isotope == "C") %>% select(Sample_type, TDF_C = TDF), by = "Sample_type") %>%
+  left_join(discrim %>% filter(Isotope == "N") %>% select(Sample_type, TDF_N = TDF), by = "Sample_type") %>%
+  mutate(C_diet = C - TDF_C,
+         N_diet = N - TDF_N)
+
+SIA_both_long <- SIA_both_corrected %>%
+  select(Turtle_ID, Sample_type, C, N) %>%
+  pivot_longer(cols = c(C, N), names_to = "Isotope", values_to = "Value") %>%
+  mutate(Sample_type = factor(Sample_type, levels = c("Blood", "Skin")))
+
+ggplot(SIA_both_long, aes(x = Sample_type, y = Value, group = Turtle_ID)) +
+  geom_line(alpha = 0.3, colour = "grey40") +
+  geom_point(aes(colour = Sample_type), size = 4, alpha = 0.8) +
+  facet_wrap(~Isotope, scales = "free_y", 
+             labeller = as_labeller(c(C = "δ13C (‰)", N = "δ15N (‰)"))) +
+  scale_colour_manual(values = c("#4A90C4", "darkgreen")) +
+  labs(x = "Tissue", y = NULL, colour = "Tissue") +
+  my_theme
+
+
+#48 individuals with both biopsy and bloods
+
+first.plot <- ggplot(data = SIA_both_corrected, 
+                   mapping = aes(x = C_diet, y = N_diet)) + 
+  geom_point(aes(color = Sample_type), size = 5) +
+  ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
+  xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
+  theme(text = element_text(size = 20))
+
+classic.first.plot <- first.plot + theme_classic() + 
+  theme(text = element_text(size = 35)) + 
+  coord_equal() + 
+  theme(axis.ticks.length = unit(-0.2, "cm")) +
+  scale_colour_manual(values = c("#4A90C4", "darkgreen"))
+print(classic.first.plot)
+
+fbmeans <- SIA_both_corrected %>% 
+  group_by(Sample_type) %>% 
+  summarise(count = n(),
+            mC = mean(C_diet), sdC = sd(C_diet), 
+            mN = mean(N_diet), sdN = sd(N_diet))
+print(fbmeans)
+
+second.plot <- first.plot + 
+  geom_errorbar(data = fbmeans, 
+                mapping = aes(x = mC, y = mN,
+                              ymin = mN - 1.96*sdN, 
+                              ymax = mN + 1.96*sdN), 
+                width = 0) +
+  geom_errorbarh(data = fbmeans, 
+                 mapping = aes(x = mC, y = mN,
+                               xmin = mC - 1.96*sdC,
+                               xmax = mC + 1.96*sdC),
+                 height = 0) + 
+  geom_point(data = fbmeans, aes(x = mC, y = mN, fill = Sample_type), 
+             color = "black", shape = 22, size = 6,
+             alpha = 0.9, show.legend = FALSE) + 
+  coord_equal()
+print(second.plot)
+
+ellipse.plot3 <- first.plot + 
+  stat_ellipse(aes(group = Sample_type, 
+                   fill = Sample_type, 
+                   color = Sample_type), 
+               alpha = 0.25, 
+               level = p.ell,
+               type = "t",
+               geom = "polygon") +
+  coord_equal()
+print(ellipse.plot3)
+```
+## Explore spatial differences in isotopes?? particularly entrance point
+
+##Sample size tables for different analyses
+
+##Try inter-annual trends again with just August/dry season data OR include month as a covariate, especially since season was significant for N
