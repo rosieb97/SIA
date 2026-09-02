@@ -931,8 +931,44 @@ ellipse.plot3 <- first.plot +
   coord_equal()
 print(ellipse.plot3)
 ```
+##Within-individual differences?? 
+
+```{r}
+individual_shift <- SIA_both_corrected %>%
+  select(Turtle_ID, Sample_type, C_diet, N_diet) %>%
+  pivot_wider(names_from = Sample_type, values_from = c(C_diet, N_diet)) %>%
+  mutate(
+    C_shift = C_diet_Skin - C_diet_Blood,   # positive = long-term diet more 13C-enriched than recent
+    N_shift = N_diet_Skin - N_diet_Blood    # positive = long-term diet higher trophic level than recent
+  )
+
+individual_shift %>%
+  ggplot(aes(x = C_shift)) +
+  geom_histogram(bins = 15, fill = "#4A90C4", colour = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey30") +
+  labs(x = "Skin − Blood δ13C shift (diet-corrected, ‰)", y = "Number of individuals") +
+  my_theme
+
+shift_model <- lm(C_shift ~ Sex + Year, data = individual_shift %>% left_join(SIA_both_corrected %>% distinct(Turtle_ID, Sex, Year), by = "Turtle_ID"))
+summary(shift_model)
+```
+
+##Do we have any individuals with repeat bloods?
+
+```{r}
+
+#requires DBCA data from export
+
+```
+
+##Can point out a TDF correction required if there's a big mismatch
+##Explore influence of rainfall or SST
+
 ## Explore spatial differences in isotopes?? particularly entrance point
 
 ##Sample size tables for different analyses
+
+
+
 
 ##Try inter-annual trends again with just August/dry season data OR include month as a covariate, especially since season was significant for N
