@@ -748,7 +748,7 @@ ellipse.plot3 <- first.plot +
 print(ellipse.plot3)
 ```
 
-## Isoscape plots by year + sex
+## Isoscape plots by season + sex
 
 ```{r}
 #| echo: true
@@ -769,7 +769,7 @@ classic.first.plot <- first.plot + theme_classic() +
 print(classic.first.plot)
 
 fbmeans <- SIA_blood %>% 
-  group_by(Year, Sex) %>% 
+  group_by(Season, Sex) %>% 
   summarise(count = n(),
             mC = mean(C), 
             sdC = sd(C), 
@@ -790,7 +790,7 @@ second.plot <- first.plot +
                  height = 0) + 
   geom_point(data = fbmeans, aes(x = mC, 
                                  y = mN,
-                                 fill = Year), 
+                                 fill = Season), 
              color = "black", shape = 22, size = 5,
              alpha = 0.7, show.legend = FALSE) + 
   coord_equal()
@@ -799,9 +799,9 @@ print(second.plot)
 p.ell <- 0.95
 
 ellipse.plot3 <- first.plot + 
-  stat_ellipse(aes(group =Year, 
-                   fill = Year, 
-                   color = Year), 
+  stat_ellipse(aes(group =Season, 
+                   fill = Season, 
+                   color = Season), 
                alpha = 0.25, 
                level = p.ell,
                type = "t",
