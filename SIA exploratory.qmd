@@ -12,6 +12,10 @@ library(patchwork)
 library(broom)
 library(tidyverse)
 library(GGally)
+library(maps)
+library(rnaturalearth)
+library(sf)
+
 
 my_theme <- theme_minimal() +
   theme(
@@ -41,7 +45,6 @@ head(lab_outputs)
 lab_outputs <- lab_outputs[, 1:(ncol(lab_outputs) - 4)]
 
 metadata<-read.csv("Metadata.csv",header=TRUE)
-metadata <- metadata[, 1:(ncol(metadata) - 88)]
 metadata <- metadata %>%
   mutate(Turtle_ID = row_number())
 
@@ -56,13 +59,13 @@ head(lab_outputs)
 blood_labs <- lab_outputs %>%
   filter(Sample_type == "Blood") %>%
   mutate(Sample_ID = as.integer(Sample_ID)) %>%
-  left_join(metadata %>% select(Blood_RB, Sex, Life_stage, Date, Mass, Adipose_perc,Turtle_ID),
+  left_join(metadata %>% select(Blood_RB, Sex, Life_stage, Date, Mass, Adipose_perc,Turtle_ID, Latitude, Longitude),
             by = c("Sample_ID" = "Blood_RB")) %>%
   mutate(Sample_ID = as.character(Sample_ID))
 
 skin_labs <- lab_outputs %>%
   filter(Sample_type == "Skin") %>%
-  left_join(metadata %>% select(Biopsy_no, Genetics_no, Sex, Life_stage, Date, Mass,Adipose_perc,Turtle_ID) %>%
+  left_join(metadata %>% select(Biopsy_no, Genetics_no, Sex, Life_stage, Date, Mass,Adipose_perc,Turtle_ID, Latitude, Longitude) %>%
               pivot_longer(c(Biopsy_no, Genetics_no), values_to = "Sample_ID") %>%
               select(-name),
             by = "Sample_ID")
@@ -116,6 +119,29 @@ SIA_full %>%
   my_theme +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
+## Where were samples taken?
+
+```{r}
+SIA_full$Location <- ifelse(SIA_full$Month_Year == "02-25", "EP", "RB")
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+geo.box <- c(xmin= 110, xmax= 140, ymin= -23, ymax= -8)
+sf::sf_use_s2(FALSE)
+aus_map <- sf::read_sf("~/Documents/Murdoch/Data/Chapter 1/Additional_tracks/Final/gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp") %>% st_crop(geo.box)
+
+ggplot() +
+  geom_sf(data = aus_map, fill = "grey90", color = "grey40") +
+  geom_point(data = SIA_full, aes(x = Longitude, y = Latitude, color = Location),
+             size = 2) +
+  coord_sf(xlim = c(geo.box["xmin"], geo.box["xmax"]),
+           ylim = c(geo.box["ymin"], geo.box["ymax"])) +
+  theme_minimal() +
+  labs(x = "Longitude", y = "Latitude", color = "Location")
+
+```
+
 
 ## Exploring inter-annual trends in biopsy data
 
@@ -965,6 +991,15 @@ summary(shift_model)
 ##Explore influence of rainfall or SST
 
 ## Explore spatial differences in isotopes?? particularly entrance point
+
+```{r}
+
+
+
+
+
+```
+
 
 ##Sample size tables for different analyses
 
