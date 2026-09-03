@@ -537,6 +537,112 @@ print(ellipse.plot3)
 
 ![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-11-3.png)
 
+\##Try inter-annual trends again with just August/dry season data OR
+include month as a covariate, especially since season was significant
+for N
+
+``` r
+SIA_biopsy_dry<-SIA_biopsy[SIA_biopsy$Month=="8",]
+
+first.plot <- ggplot(data = SIA_biopsy_dry, 
+                   mapping = aes(x = C, 
+                                 y = N)) + 
+  geom_point(aes(color = Year), size = 5) +
+  facet_wrap(~Sex)+
+  ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
+  xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
+  theme(text = element_text(size=20))
+
+classic.first.plot <- first.plot + theme_classic() + 
+  theme(text = element_text(size=35)) + 
+  coord_equal() + 
+  theme(axis.ticks.length = unit(-0.2, "cm")) +
+  scale_colour_viridis_d(end = 0.9)
+print(classic.first.plot)
+```
+
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-12-1.png)
+
+``` r
+fbmeans <- SIA_biopsy_dry %>% 
+  group_by(Year, Sex) %>% 
+  summarise(count = n(),
+            mC = mean(C), 
+            sdC = sd(C), 
+            mN = mean(N), 
+            sdN = sd(N) )
+```
+
+    `summarise()` has regrouped the output.
+    ℹ Summaries were computed grouped by Year and Sex.
+    ℹ Output is grouped by Year.
+    ℹ Use `summarise(.groups = "drop_last")` to silence this message.
+    ℹ Use `summarise(.by = c(Year, Sex))` for per-operation grouping
+      (`?dplyr::dplyr_by`) instead.
+
+``` r
+print(fbmeans)
+```
+
+    # A tibble: 10 × 7
+    # Groups:   Year [5]
+       Year  Sex   count    mC    sdC    mN    sdN
+       <fct> <chr> <int> <dbl>  <dbl> <dbl>  <dbl>
+     1 2018  F         8 -17.1  0.607  12.7  0.287
+     2 2018  M        10 -16.4  1.18   12.3  0.974
+     3 2019  F         6 -16.4  0.902  12.0  0.364
+     4 2019  M         1 -17.1 NA      11.9 NA    
+     5 2020  F        18 -17.2  0.460  12.3  0.353
+     6 2020  M         7 -17.0  0.458  12.6  0.352
+     7 2024  F         3 -15.3  1.01   13.1  0.489
+     8 2024  M         7 -14.7  0.266  12.9  0.237
+     9 2025  F        12 -15.8  0.633  11.9  0.294
+    10 2025  M         8 -15.4  0.547  12.2  0.343
+
+``` r
+second.plot <- first.plot + 
+  geom_errorbar(data = fbmeans, 
+                mapping = aes(x = mC, y = mN,
+                              ymin = mN - 1.96*sdN, 
+                              ymax = mN + 1.96*sdN), 
+                width = 0)+
+  geom_errorbarh(data = fbmeans, 
+                 mapping = aes(x = mC, y = mN,
+                               xmin = mC - 1.96*sdC,
+                               xmax = mC + 1.96*sdC),
+                 height = 0) + 
+  geom_point(data = fbmeans, aes(x = mC, 
+                                 y = mN,
+                                 fill = Year), 
+             color = "black", shape = 22, size = 5,
+             alpha = 0.7, show.legend = FALSE) + 
+  coord_equal()
+print(second.plot)
+```
+
+    `height` was translated to `width`.
+
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-12-2.png)
+
+``` r
+p.ell <- 0.95
+
+ellipse.plot3 <- first.plot + 
+  stat_ellipse(aes(group =Year, 
+                   fill = Year, 
+                   color = Year), 
+               alpha = 0.25, 
+               level = p.ell,
+               type = "t",
+               geom = "polygon")
+print(ellipse.plot3)
+```
+
+    Too few points to calculate an ellipse
+    Too few points to calculate an ellipse
+
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-12-3.png)
+
 ## Isoscape plots by year + sex + season
 
 ``` r
@@ -557,7 +663,7 @@ classic.first.plot <- first.plot + theme_classic() +
 print(classic.first.plot)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-12-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-13-1.png)
 
 ``` r
 fbmeans <- SIA_biopsy %>% 
@@ -622,7 +728,7 @@ print(second.plot)
 
     `height` was translated to `width`.
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-12-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-13-2.png)
 
 ``` r
 p.ell <- 0.95
@@ -641,7 +747,7 @@ print(ellipse.plot3)
 
     Too few points to calculate an ellipse
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-12-3.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-13-3.png)
 
 ## Running models
 
@@ -709,7 +815,7 @@ par(mfrow = c(2,2))
 plot(mC)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-13-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-14-1.png)
 
 ``` r
 mN <- lm(N ~ Year + Sex + Season, data = SIA_biopsy)
@@ -754,7 +860,7 @@ shapiro.test(resid(mN))
 plot(mN)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-13-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-14-2.png)
 
 ``` r
 mC <- lm(C ~ Year + Sex, data = SIA_biopsy)
@@ -799,10 +905,10 @@ par(mfrow = c(2,2))
 plot(mC)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-13-3.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-14-3.png)
 
 ``` r
-mN <- lm(N ~ Year + Sex, data = SIA_biopsy)
+mN <- lm(N ~ Year + Sex , data = SIA_biopsy)
 summary(mN)
 ```
 
@@ -843,7 +949,7 @@ shapiro.test(resid(mN))
 plot(mN)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-13-4.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-14-4.png)
 
 ``` r
 SIA_biopsy %>%
@@ -854,7 +960,7 @@ SIA_biopsy %>%
     Warning: Removed 15 rows containing missing values or values outside the scale range
     (`geom_point()`).
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-14-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-15-1.png)
 
 ``` r
 SIA_biopsy %>%
@@ -865,7 +971,7 @@ SIA_biopsy %>%
     Warning: Removed 15 rows containing missing values or values outside the scale range
     (`geom_point()`).
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-14-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-15-2.png)
 
 ## Next on the list is repeating this for blood samples AND tissue comparison AND considering the above analysis and whether the sample is actually representative of wet/dry
 
@@ -894,7 +1000,7 @@ SIA_blood %>%
     `stat_bin()` using `bins = 30`. Pick better value `binwidth`.
     `stat_bin()` using `bins = 30`. Pick better value `binwidth`.
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-16-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-17-1.png)
 
 ``` r
 SIA_blood %>%
@@ -916,7 +1022,7 @@ SIA_blood %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-17-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-18-1.png)
 
 ``` r
 SIA_blood %>%
@@ -938,7 +1044,7 @@ SIA_blood %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-17-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-18-2.png)
 
 ## Isoscape plots by season
 
@@ -949,7 +1055,7 @@ SIA_blood %>%
   facet_wrap(~Season)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-18-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-19-1.png)
 
 ``` r
 first.plot <- ggplot(data = SIA_blood, 
@@ -968,7 +1074,7 @@ classic.first.plot <- first.plot + theme_classic() +
 print(classic.first.plot)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-18-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-19-2.png)
 
 ``` r
 fbmeans <- SIA_blood %>% 
@@ -1010,7 +1116,7 @@ print(second.plot)
 
     `height` was translated to `width`.
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-18-3.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-19-3.png)
 
 ``` r
 p.ell <- 0.95
@@ -1026,7 +1132,7 @@ ellipse.plot3 <- first.plot +
 print(ellipse.plot3)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-18-4.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-19-4.png)
 
 ## Isoscape plots by sex
 
@@ -1047,7 +1153,7 @@ classic.first.plot <- first.plot + theme_classic() +
 print(classic.first.plot)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-19-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-20-1.png)
 
 ``` r
 fbmeans <- SIA_blood %>% 
@@ -1089,7 +1195,7 @@ print(second.plot)
 
     `height` was translated to `width`.
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-19-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-20-2.png)
 
 ``` r
 p.ell <- 0.95
@@ -1105,7 +1211,7 @@ ellipse.plot3 <- first.plot +
 print(ellipse.plot3)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-19-3.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-20-3.png)
 
 ## Isoscape plots by year + sex
 
@@ -1127,7 +1233,7 @@ classic.first.plot <- first.plot + theme_classic() +
 print(classic.first.plot)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-20-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-21-1.png)
 
 ``` r
 fbmeans <- SIA_blood %>% 
@@ -1182,7 +1288,7 @@ print(second.plot)
 
     `height` was translated to `width`.
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-20-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-21-2.png)
 
 ``` r
 p.ell <- 0.95
@@ -1200,7 +1306,7 @@ print(ellipse.plot3)
 
     Too few points to calculate an ellipse
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-20-3.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-21-3.png)
 
 ## Isoscape plots by year + sex + season
 
@@ -1222,7 +1328,7 @@ classic.first.plot <- first.plot + theme_classic() +
 print(classic.first.plot)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-21-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-22-1.png)
 
 ``` r
 fbmeans <- SIA_blood %>% 
@@ -1281,7 +1387,7 @@ print(second.plot)
 
     `height` was translated to `width`.
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-21-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-22-2.png)
 
 ``` r
 p.ell <- 0.95
@@ -1300,7 +1406,7 @@ print(ellipse.plot3)
 
     Too few points to calculate an ellipse
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-21-3.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-22-3.png)
 
 ## Running models
 
@@ -1357,7 +1463,7 @@ par(mfrow = c(2,2))
 plot(mC)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-22-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-23-1.png)
 
 ``` r
 mN <- lm(N ~ Year + Sex + Season, data = SIA_blood)
@@ -1399,7 +1505,7 @@ shapiro.test(resid(mN))
 plot(mN)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-22-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-23-2.png)
 
 ``` r
 SIA_blood %>%
@@ -1407,7 +1513,7 @@ SIA_blood %>%
   geom_point(size = 5)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-23-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-24-1.png)
 
 ``` r
 SIA_blood %>%
@@ -1415,7 +1521,7 @@ SIA_blood %>%
   geom_point(size = 5)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-23-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-24-2.png)
 
 ``` r
 summary(lm(C ~ Mass + Season, data = SIA_blood))
@@ -1476,7 +1582,7 @@ SIA_blood %>%
     Warning: Removed 25 rows containing missing values or values outside the scale range
     (`geom_point()`).
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-23-3.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-24-3.png)
 
 ``` r
 SIA_blood %>%
@@ -1487,7 +1593,7 @@ SIA_blood %>%
     Warning: Removed 25 rows containing missing values or values outside the scale range
     (`geom_point()`).
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-23-4.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-24-4.png)
 
 ``` r
 summary(lm(C ~ Adipose_perc + Sex, data = SIA_blood))
@@ -1617,7 +1723,7 @@ ggplot(SIA_both_long, aes(x = Sample_type, y = Value, group = Turtle_ID)) +
   my_theme
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-24-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-25-1.png)
 
 ``` r
 #48 individuals with both biopsy and bloods
@@ -1637,7 +1743,7 @@ classic.first.plot <- first.plot + theme_classic() +
 print(classic.first.plot)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-24-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-25-2.png)
 
 ``` r
 fbmeans <- SIA_both_corrected %>% 
@@ -1675,7 +1781,7 @@ print(second.plot)
 
     `height` was translated to `width`.
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-24-3.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-25-3.png)
 
 ``` r
 ellipse.plot3 <- first.plot + 
@@ -1690,7 +1796,7 @@ ellipse.plot3 <- first.plot +
 print(ellipse.plot3)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-24-4.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-25-4.png)
 
 \##Within-individual differences??
 
@@ -1711,7 +1817,7 @@ individual_shift %>%
   my_theme
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-25-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-26-1.png)
 
 ``` r
 shift_model <- lm(C_shift ~ Sex + Year, data = individual_shift %>% left_join(SIA_both_corrected %>% distinct(Turtle_ID, Sex, Year), by = "Turtle_ID"))
@@ -1770,7 +1876,7 @@ classic.first.plot <- first.plot + theme_classic() +
 print(classic.first.plot)
 ```
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-27-1.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-28-1.png)
 
 ``` r
 fbmeans <- SIA_blood %>% 
@@ -1825,7 +1931,7 @@ print(second.plot)
 
     `height` was translated to `width`.
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-27-2.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-28-2.png)
 
 ``` r
 p.ell <- 0.95
@@ -1843,7 +1949,7 @@ print(ellipse.plot3)
 
     Too few points to calculate an ellipse
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-27-3.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-28-3.png)
 
 ``` r
 summary(lm(C ~ Location + Sex + Season, data = SIA_blood))
@@ -1891,7 +1997,7 @@ print(classic.first.plot)
     Warning: Removed 2 rows containing missing values or values outside the scale range
     (`geom_point()`).
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-27-4.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-28-4.png)
 
 ``` r
 fbmeans <- SIA_biopsy %>% 
@@ -1947,7 +2053,7 @@ print(second.plot)
 
     `height` was translated to `width`.
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-27-5.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-28-5.png)
 
 ``` r
 p.ell <- 0.95
@@ -1966,7 +2072,7 @@ print(ellipse.plot3)
     Too few points to calculate an ellipse
     Too few points to calculate an ellipse
 
-![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-27-6.png)
+![](SIA-exploratory_files/figure-commonmark/unnamed-chunk-28-6.png)
 
 ``` r
 summary(lm(C ~ Location, data = SIA_biopsy))
@@ -2057,20 +2163,20 @@ for (yr in unique(col_years$Year)) {
 gt_table
 ```
 
-<div id="glpacptbku" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#glpacptbku table {
+<div id="laectdpsft" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#laectdpsft table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-&#10;#glpacptbku thead, #glpacptbku tbody, #glpacptbku tfoot, #glpacptbku tr, #glpacptbku td, #glpacptbku th {
+&#10;#laectdpsft thead, #laectdpsft tbody, #laectdpsft tfoot, #laectdpsft tr, #laectdpsft td, #laectdpsft th {
   border-style: none;
 }
-&#10;#glpacptbku p {
+&#10;#laectdpsft p {
   margin: 0;
   padding: 0;
 }
-&#10;#glpacptbku .gt_table {
+&#10;#laectdpsft .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -2095,11 +2201,11 @@ gt_table
   border-left-width: 2px;
   border-left-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_caption {
+&#10;#laectdpsft .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
-&#10;#glpacptbku .gt_title {
+&#10;#laectdpsft .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -2110,7 +2216,7 @@ gt_table
   border-bottom-color: #FFFFFF;
   border-bottom-width: 0;
 }
-&#10;#glpacptbku .gt_subtitle {
+&#10;#laectdpsft .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -2121,7 +2227,7 @@ gt_table
   border-top-color: #FFFFFF;
   border-top-width: 0;
 }
-&#10;#glpacptbku .gt_heading {
+&#10;#laectdpsft .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -2132,12 +2238,12 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_bottom_border {
+&#10;#laectdpsft .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_col_headings {
+&#10;#laectdpsft .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -2151,7 +2257,7 @@ gt_table
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_col_heading {
+&#10;#laectdpsft .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2170,7 +2276,7 @@ gt_table
   padding-right: 5px;
   overflow-x: hidden;
 }
-&#10;#glpacptbku .gt_column_spanner_outer {
+&#10;#laectdpsft .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2181,13 +2287,13 @@ gt_table
   padding-left: 4px;
   padding-right: 4px;
 }
-&#10;#glpacptbku .gt_column_spanner_outer:first-child {
+&#10;#laectdpsft .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
-&#10;#glpacptbku .gt_column_spanner_outer:last-child {
+&#10;#laectdpsft .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
-&#10;#glpacptbku .gt_column_spanner {
+&#10;#laectdpsft .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -2198,10 +2304,10 @@ gt_table
   display: inline-block;
   width: 100%;
 }
-&#10;#glpacptbku .gt_spanner_row {
+&#10;#laectdpsft .gt_spanner_row {
   border-bottom-style: hidden;
 }
-&#10;#glpacptbku .gt_group_heading {
+&#10;#laectdpsft .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2226,7 +2332,7 @@ gt_table
   vertical-align: middle;
   text-align: left;
 }
-&#10;#glpacptbku .gt_empty_group_heading {
+&#10;#laectdpsft .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -2240,13 +2346,13 @@ gt_table
   border-bottom-color: #D3D3D3;
   vertical-align: middle;
 }
-&#10;#glpacptbku .gt_from_md > :first-child {
+&#10;#laectdpsft .gt_from_md > :first-child {
   margin-top: 0;
 }
-&#10;#glpacptbku .gt_from_md > :last-child {
+&#10;#laectdpsft .gt_from_md > :last-child {
   margin-bottom: 0;
 }
-&#10;#glpacptbku .gt_row {
+&#10;#laectdpsft .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2264,7 +2370,7 @@ gt_table
   vertical-align: middle;
   overflow-x: hidden;
 }
-&#10;#glpacptbku .gt_stub {
+&#10;#laectdpsft .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2276,7 +2382,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#glpacptbku .gt_stub_row_group {
+&#10;#laectdpsft .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2289,13 +2395,13 @@ gt_table
   padding-right: 5px;
   vertical-align: top;
 }
-&#10;#glpacptbku .gt_row_group_first td {
+&#10;#laectdpsft .gt_row_group_first td {
   border-top-width: 2px;
 }
-&#10;#glpacptbku .gt_row_group_first th {
+&#10;#laectdpsft .gt_row_group_first th {
   border-top-width: 2px;
 }
-&#10;#glpacptbku .gt_summary_row {
+&#10;#laectdpsft .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -2304,14 +2410,14 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#glpacptbku .gt_first_summary_row {
+&#10;#laectdpsft .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_first_summary_row.thick {
+&#10;#laectdpsft .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
-&#10;#glpacptbku .gt_last_summary_row {
+&#10;#laectdpsft .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2320,7 +2426,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_grand_summary_row {
+&#10;#laectdpsft .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -2329,7 +2435,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#glpacptbku .gt_first_grand_summary_row {
+&#10;#laectdpsft .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2338,7 +2444,7 @@ gt_table
   border-top-width: 6px;
   border-top-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_last_grand_summary_row_top {
+&#10;#laectdpsft .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2347,10 +2453,10 @@ gt_table
   border-bottom-width: 6px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_striped {
+&#10;#laectdpsft .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
-&#10;#glpacptbku .gt_table_body {
+&#10;#laectdpsft .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -2358,7 +2464,7 @@ gt_table
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_footnotes {
+&#10;#laectdpsft .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -2371,7 +2477,7 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_footnote {
+&#10;#laectdpsft .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -2379,7 +2485,7 @@ gt_table
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#glpacptbku .gt_sourcenotes {
+&#10;#laectdpsft .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -2392,64 +2498,64 @@ gt_table
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#glpacptbku .gt_sourcenote {
+&#10;#laectdpsft .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#glpacptbku .gt_left {
+&#10;#laectdpsft .gt_left {
   text-align: left;
 }
-&#10;#glpacptbku .gt_center {
+&#10;#laectdpsft .gt_center {
   text-align: center;
 }
-&#10;#glpacptbku .gt_right {
+&#10;#laectdpsft .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-&#10;#glpacptbku .gt_font_normal {
+&#10;#laectdpsft .gt_font_normal {
   font-weight: normal;
 }
-&#10;#glpacptbku .gt_font_bold {
+&#10;#laectdpsft .gt_font_bold {
   font-weight: bold;
 }
-&#10;#glpacptbku .gt_font_italic {
+&#10;#laectdpsft .gt_font_italic {
   font-style: italic;
 }
-&#10;#glpacptbku .gt_super {
+&#10;#laectdpsft .gt_super {
   font-size: 65%;
 }
-&#10;#glpacptbku .gt_footnote_marks {
+&#10;#laectdpsft .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
-&#10;#glpacptbku .gt_asterisk {
+&#10;#laectdpsft .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
-&#10;#glpacptbku .gt_indent_1 {
+&#10;#laectdpsft .gt_indent_1 {
   text-indent: 5px;
 }
-&#10;#glpacptbku .gt_indent_2 {
+&#10;#laectdpsft .gt_indent_2 {
   text-indent: 10px;
 }
-&#10;#glpacptbku .gt_indent_3 {
+&#10;#laectdpsft .gt_indent_3 {
   text-indent: 15px;
 }
-&#10;#glpacptbku .gt_indent_4 {
+&#10;#laectdpsft .gt_indent_4 {
   text-indent: 20px;
 }
-&#10;#glpacptbku .gt_indent_5 {
+&#10;#laectdpsft .gt_indent_5 {
   text-indent: 25px;
 }
-&#10;#glpacptbku .katex-display {
+&#10;#laectdpsft .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
-&#10;#glpacptbku div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+&#10;#laectdpsft div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -2566,20 +2672,20 @@ wide_data %>%
   cols_label(Sex = "Sex")
 ```
 
-<div id="nnswjqhwsk" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#nnswjqhwsk table {
+<div id="wzfueyvhjc" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#wzfueyvhjc table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-&#10;#nnswjqhwsk thead, #nnswjqhwsk tbody, #nnswjqhwsk tfoot, #nnswjqhwsk tr, #nnswjqhwsk td, #nnswjqhwsk th {
+&#10;#wzfueyvhjc thead, #wzfueyvhjc tbody, #wzfueyvhjc tfoot, #wzfueyvhjc tr, #wzfueyvhjc td, #wzfueyvhjc th {
   border-style: none;
 }
-&#10;#nnswjqhwsk p {
+&#10;#wzfueyvhjc p {
   margin: 0;
   padding: 0;
 }
-&#10;#nnswjqhwsk .gt_table {
+&#10;#wzfueyvhjc .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -2604,11 +2710,11 @@ wide_data %>%
   border-left-width: 2px;
   border-left-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_caption {
+&#10;#wzfueyvhjc .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
-&#10;#nnswjqhwsk .gt_title {
+&#10;#wzfueyvhjc .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -2619,7 +2725,7 @@ wide_data %>%
   border-bottom-color: #FFFFFF;
   border-bottom-width: 0;
 }
-&#10;#nnswjqhwsk .gt_subtitle {
+&#10;#wzfueyvhjc .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -2630,7 +2736,7 @@ wide_data %>%
   border-top-color: #FFFFFF;
   border-top-width: 0;
 }
-&#10;#nnswjqhwsk .gt_heading {
+&#10;#wzfueyvhjc .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -2641,12 +2747,12 @@ wide_data %>%
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_bottom_border {
+&#10;#wzfueyvhjc .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_col_headings {
+&#10;#wzfueyvhjc .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -2660,7 +2766,7 @@ wide_data %>%
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_col_heading {
+&#10;#wzfueyvhjc .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2679,7 +2785,7 @@ wide_data %>%
   padding-right: 5px;
   overflow-x: hidden;
 }
-&#10;#nnswjqhwsk .gt_column_spanner_outer {
+&#10;#wzfueyvhjc .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2690,13 +2796,13 @@ wide_data %>%
   padding-left: 4px;
   padding-right: 4px;
 }
-&#10;#nnswjqhwsk .gt_column_spanner_outer:first-child {
+&#10;#wzfueyvhjc .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
-&#10;#nnswjqhwsk .gt_column_spanner_outer:last-child {
+&#10;#wzfueyvhjc .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
-&#10;#nnswjqhwsk .gt_column_spanner {
+&#10;#wzfueyvhjc .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -2707,10 +2813,10 @@ wide_data %>%
   display: inline-block;
   width: 100%;
 }
-&#10;#nnswjqhwsk .gt_spanner_row {
+&#10;#wzfueyvhjc .gt_spanner_row {
   border-bottom-style: hidden;
 }
-&#10;#nnswjqhwsk .gt_group_heading {
+&#10;#wzfueyvhjc .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2735,7 +2841,7 @@ wide_data %>%
   vertical-align: middle;
   text-align: left;
 }
-&#10;#nnswjqhwsk .gt_empty_group_heading {
+&#10;#wzfueyvhjc .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -2749,13 +2855,13 @@ wide_data %>%
   border-bottom-color: #D3D3D3;
   vertical-align: middle;
 }
-&#10;#nnswjqhwsk .gt_from_md > :first-child {
+&#10;#wzfueyvhjc .gt_from_md > :first-child {
   margin-top: 0;
 }
-&#10;#nnswjqhwsk .gt_from_md > :last-child {
+&#10;#wzfueyvhjc .gt_from_md > :last-child {
   margin-bottom: 0;
 }
-&#10;#nnswjqhwsk .gt_row {
+&#10;#wzfueyvhjc .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2773,7 +2879,7 @@ wide_data %>%
   vertical-align: middle;
   overflow-x: hidden;
 }
-&#10;#nnswjqhwsk .gt_stub {
+&#10;#wzfueyvhjc .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2785,7 +2891,7 @@ wide_data %>%
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#nnswjqhwsk .gt_stub_row_group {
+&#10;#wzfueyvhjc .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2798,13 +2904,13 @@ wide_data %>%
   padding-right: 5px;
   vertical-align: top;
 }
-&#10;#nnswjqhwsk .gt_row_group_first td {
+&#10;#wzfueyvhjc .gt_row_group_first td {
   border-top-width: 2px;
 }
-&#10;#nnswjqhwsk .gt_row_group_first th {
+&#10;#wzfueyvhjc .gt_row_group_first th {
   border-top-width: 2px;
 }
-&#10;#nnswjqhwsk .gt_summary_row {
+&#10;#wzfueyvhjc .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -2813,14 +2919,14 @@ wide_data %>%
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#nnswjqhwsk .gt_first_summary_row {
+&#10;#wzfueyvhjc .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_first_summary_row.thick {
+&#10;#wzfueyvhjc .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
-&#10;#nnswjqhwsk .gt_last_summary_row {
+&#10;#wzfueyvhjc .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2829,7 +2935,7 @@ wide_data %>%
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_grand_summary_row {
+&#10;#wzfueyvhjc .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -2838,7 +2944,7 @@ wide_data %>%
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#nnswjqhwsk .gt_first_grand_summary_row {
+&#10;#wzfueyvhjc .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2847,7 +2953,7 @@ wide_data %>%
   border-top-width: 6px;
   border-top-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_last_grand_summary_row_top {
+&#10;#wzfueyvhjc .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2856,10 +2962,10 @@ wide_data %>%
   border-bottom-width: 6px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_striped {
+&#10;#wzfueyvhjc .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
-&#10;#nnswjqhwsk .gt_table_body {
+&#10;#wzfueyvhjc .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -2867,7 +2973,7 @@ wide_data %>%
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_footnotes {
+&#10;#wzfueyvhjc .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -2880,7 +2986,7 @@ wide_data %>%
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_footnote {
+&#10;#wzfueyvhjc .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -2888,7 +2994,7 @@ wide_data %>%
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#nnswjqhwsk .gt_sourcenotes {
+&#10;#wzfueyvhjc .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -2901,64 +3007,64 @@ wide_data %>%
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#nnswjqhwsk .gt_sourcenote {
+&#10;#wzfueyvhjc .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#nnswjqhwsk .gt_left {
+&#10;#wzfueyvhjc .gt_left {
   text-align: left;
 }
-&#10;#nnswjqhwsk .gt_center {
+&#10;#wzfueyvhjc .gt_center {
   text-align: center;
 }
-&#10;#nnswjqhwsk .gt_right {
+&#10;#wzfueyvhjc .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-&#10;#nnswjqhwsk .gt_font_normal {
+&#10;#wzfueyvhjc .gt_font_normal {
   font-weight: normal;
 }
-&#10;#nnswjqhwsk .gt_font_bold {
+&#10;#wzfueyvhjc .gt_font_bold {
   font-weight: bold;
 }
-&#10;#nnswjqhwsk .gt_font_italic {
+&#10;#wzfueyvhjc .gt_font_italic {
   font-style: italic;
 }
-&#10;#nnswjqhwsk .gt_super {
+&#10;#wzfueyvhjc .gt_super {
   font-size: 65%;
 }
-&#10;#nnswjqhwsk .gt_footnote_marks {
+&#10;#wzfueyvhjc .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
-&#10;#nnswjqhwsk .gt_asterisk {
+&#10;#wzfueyvhjc .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
-&#10;#nnswjqhwsk .gt_indent_1 {
+&#10;#wzfueyvhjc .gt_indent_1 {
   text-indent: 5px;
 }
-&#10;#nnswjqhwsk .gt_indent_2 {
+&#10;#wzfueyvhjc .gt_indent_2 {
   text-indent: 10px;
 }
-&#10;#nnswjqhwsk .gt_indent_3 {
+&#10;#wzfueyvhjc .gt_indent_3 {
   text-indent: 15px;
 }
-&#10;#nnswjqhwsk .gt_indent_4 {
+&#10;#wzfueyvhjc .gt_indent_4 {
   text-indent: 20px;
 }
-&#10;#nnswjqhwsk .gt_indent_5 {
+&#10;#wzfueyvhjc .gt_indent_5 {
   text-indent: 25px;
 }
-&#10;#nnswjqhwsk .katex-display {
+&#10;#wzfueyvhjc .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
-&#10;#nnswjqhwsk div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+&#10;#wzfueyvhjc div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -2984,20 +3090,20 @@ wide_data %>%
   cols_label(Sex = "Sex")
 ```
 
-<div id="xphrpedhlk" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#xphrpedhlk table {
+<div id="lfqwiugbrd" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#lfqwiugbrd table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-&#10;#xphrpedhlk thead, #xphrpedhlk tbody, #xphrpedhlk tfoot, #xphrpedhlk tr, #xphrpedhlk td, #xphrpedhlk th {
+&#10;#lfqwiugbrd thead, #lfqwiugbrd tbody, #lfqwiugbrd tfoot, #lfqwiugbrd tr, #lfqwiugbrd td, #lfqwiugbrd th {
   border-style: none;
 }
-&#10;#xphrpedhlk p {
+&#10;#lfqwiugbrd p {
   margin: 0;
   padding: 0;
 }
-&#10;#xphrpedhlk .gt_table {
+&#10;#lfqwiugbrd .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -3022,11 +3128,11 @@ wide_data %>%
   border-left-width: 2px;
   border-left-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_caption {
+&#10;#lfqwiugbrd .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
-&#10;#xphrpedhlk .gt_title {
+&#10;#lfqwiugbrd .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -3037,7 +3143,7 @@ wide_data %>%
   border-bottom-color: #FFFFFF;
   border-bottom-width: 0;
 }
-&#10;#xphrpedhlk .gt_subtitle {
+&#10;#lfqwiugbrd .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -3048,7 +3154,7 @@ wide_data %>%
   border-top-color: #FFFFFF;
   border-top-width: 0;
 }
-&#10;#xphrpedhlk .gt_heading {
+&#10;#lfqwiugbrd .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -3059,12 +3165,12 @@ wide_data %>%
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_bottom_border {
+&#10;#lfqwiugbrd .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_col_headings {
+&#10;#lfqwiugbrd .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -3078,7 +3184,7 @@ wide_data %>%
   border-right-width: 1px;
   border-right-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_col_heading {
+&#10;#lfqwiugbrd .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -3097,7 +3203,7 @@ wide_data %>%
   padding-right: 5px;
   overflow-x: hidden;
 }
-&#10;#xphrpedhlk .gt_column_spanner_outer {
+&#10;#lfqwiugbrd .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -3108,13 +3214,13 @@ wide_data %>%
   padding-left: 4px;
   padding-right: 4px;
 }
-&#10;#xphrpedhlk .gt_column_spanner_outer:first-child {
+&#10;#lfqwiugbrd .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
-&#10;#xphrpedhlk .gt_column_spanner_outer:last-child {
+&#10;#lfqwiugbrd .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
-&#10;#xphrpedhlk .gt_column_spanner {
+&#10;#lfqwiugbrd .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -3125,10 +3231,10 @@ wide_data %>%
   display: inline-block;
   width: 100%;
 }
-&#10;#xphrpedhlk .gt_spanner_row {
+&#10;#lfqwiugbrd .gt_spanner_row {
   border-bottom-style: hidden;
 }
-&#10;#xphrpedhlk .gt_group_heading {
+&#10;#lfqwiugbrd .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -3153,7 +3259,7 @@ wide_data %>%
   vertical-align: middle;
   text-align: left;
 }
-&#10;#xphrpedhlk .gt_empty_group_heading {
+&#10;#lfqwiugbrd .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -3167,13 +3273,13 @@ wide_data %>%
   border-bottom-color: #D3D3D3;
   vertical-align: middle;
 }
-&#10;#xphrpedhlk .gt_from_md > :first-child {
+&#10;#lfqwiugbrd .gt_from_md > :first-child {
   margin-top: 0;
 }
-&#10;#xphrpedhlk .gt_from_md > :last-child {
+&#10;#lfqwiugbrd .gt_from_md > :last-child {
   margin-bottom: 0;
 }
-&#10;#xphrpedhlk .gt_row {
+&#10;#lfqwiugbrd .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -3191,7 +3297,7 @@ wide_data %>%
   vertical-align: middle;
   overflow-x: hidden;
 }
-&#10;#xphrpedhlk .gt_stub {
+&#10;#lfqwiugbrd .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -3203,7 +3309,7 @@ wide_data %>%
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#xphrpedhlk .gt_stub_row_group {
+&#10;#lfqwiugbrd .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -3216,13 +3322,13 @@ wide_data %>%
   padding-right: 5px;
   vertical-align: top;
 }
-&#10;#xphrpedhlk .gt_row_group_first td {
+&#10;#lfqwiugbrd .gt_row_group_first td {
   border-top-width: 2px;
 }
-&#10;#xphrpedhlk .gt_row_group_first th {
+&#10;#lfqwiugbrd .gt_row_group_first th {
   border-top-width: 2px;
 }
-&#10;#xphrpedhlk .gt_summary_row {
+&#10;#lfqwiugbrd .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -3231,14 +3337,14 @@ wide_data %>%
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#xphrpedhlk .gt_first_summary_row {
+&#10;#lfqwiugbrd .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_first_summary_row.thick {
+&#10;#lfqwiugbrd .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
-&#10;#xphrpedhlk .gt_last_summary_row {
+&#10;#lfqwiugbrd .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -3247,7 +3353,7 @@ wide_data %>%
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_grand_summary_row {
+&#10;#lfqwiugbrd .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -3256,7 +3362,7 @@ wide_data %>%
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#xphrpedhlk .gt_first_grand_summary_row {
+&#10;#lfqwiugbrd .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -3265,7 +3371,7 @@ wide_data %>%
   border-top-width: 6px;
   border-top-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_last_grand_summary_row_top {
+&#10;#lfqwiugbrd .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -3274,10 +3380,10 @@ wide_data %>%
   border-bottom-width: 6px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_striped {
+&#10;#lfqwiugbrd .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
-&#10;#xphrpedhlk .gt_table_body {
+&#10;#lfqwiugbrd .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -3285,7 +3391,7 @@ wide_data %>%
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_footnotes {
+&#10;#lfqwiugbrd .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -3298,7 +3404,7 @@ wide_data %>%
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_footnote {
+&#10;#lfqwiugbrd .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -3306,7 +3412,7 @@ wide_data %>%
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#xphrpedhlk .gt_sourcenotes {
+&#10;#lfqwiugbrd .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -3319,64 +3425,64 @@ wide_data %>%
   border-right-width: 2px;
   border-right-color: #D3D3D3;
 }
-&#10;#xphrpedhlk .gt_sourcenote {
+&#10;#lfqwiugbrd .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
   padding-left: 5px;
   padding-right: 5px;
 }
-&#10;#xphrpedhlk .gt_left {
+&#10;#lfqwiugbrd .gt_left {
   text-align: left;
 }
-&#10;#xphrpedhlk .gt_center {
+&#10;#lfqwiugbrd .gt_center {
   text-align: center;
 }
-&#10;#xphrpedhlk .gt_right {
+&#10;#lfqwiugbrd .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-&#10;#xphrpedhlk .gt_font_normal {
+&#10;#lfqwiugbrd .gt_font_normal {
   font-weight: normal;
 }
-&#10;#xphrpedhlk .gt_font_bold {
+&#10;#lfqwiugbrd .gt_font_bold {
   font-weight: bold;
 }
-&#10;#xphrpedhlk .gt_font_italic {
+&#10;#lfqwiugbrd .gt_font_italic {
   font-style: italic;
 }
-&#10;#xphrpedhlk .gt_super {
+&#10;#lfqwiugbrd .gt_super {
   font-size: 65%;
 }
-&#10;#xphrpedhlk .gt_footnote_marks {
+&#10;#lfqwiugbrd .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
-&#10;#xphrpedhlk .gt_asterisk {
+&#10;#lfqwiugbrd .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
-&#10;#xphrpedhlk .gt_indent_1 {
+&#10;#lfqwiugbrd .gt_indent_1 {
   text-indent: 5px;
 }
-&#10;#xphrpedhlk .gt_indent_2 {
+&#10;#lfqwiugbrd .gt_indent_2 {
   text-indent: 10px;
 }
-&#10;#xphrpedhlk .gt_indent_3 {
+&#10;#lfqwiugbrd .gt_indent_3 {
   text-indent: 15px;
 }
-&#10;#xphrpedhlk .gt_indent_4 {
+&#10;#lfqwiugbrd .gt_indent_4 {
   text-indent: 20px;
 }
-&#10;#xphrpedhlk .gt_indent_5 {
+&#10;#lfqwiugbrd .gt_indent_5 {
   text-indent: 25px;
 }
-&#10;#xphrpedhlk .katex-display {
+&#10;#lfqwiugbrd .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
-&#10;#xphrpedhlk div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+&#10;#lfqwiugbrd div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -3389,7 +3495,3 @@ wide_data %>%
 </div>
 
 \`\`\`
-
-\##Try inter-annual trends again with just August/dry season data OR
-include month as a covariate, especially since season was significant
-for N

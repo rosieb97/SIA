@@ -387,6 +387,69 @@ ellipse.plot3 <- first.plot +
 print(ellipse.plot3)
 ```
 
+##Try inter-annual trends again with just August/dry season data OR include month as a covariate, especially since season was significant for N
+
+```{r}
+
+SIA_biopsy_dry<-SIA_biopsy[SIA_biopsy$Month=="8",]
+
+first.plot <- ggplot(data = SIA_biopsy_dry, 
+                   mapping = aes(x = C, 
+                                 y = N)) + 
+  geom_point(aes(color = Year), size = 5) +
+  facet_wrap(~Sex)+
+  ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
+  xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
+  theme(text = element_text(size=20))
+
+classic.first.plot <- first.plot + theme_classic() + 
+  theme(text = element_text(size=35)) + 
+  coord_equal() + 
+  theme(axis.ticks.length = unit(-0.2, "cm")) +
+  scale_colour_viridis_d(end = 0.9)
+print(classic.first.plot)
+
+fbmeans <- SIA_biopsy_dry %>% 
+  group_by(Year, Sex) %>% 
+  summarise(count = n(),
+            mC = mean(C), 
+            sdC = sd(C), 
+            mN = mean(N), 
+            sdN = sd(N) )
+print(fbmeans)
+
+second.plot <- first.plot + 
+  geom_errorbar(data = fbmeans, 
+                mapping = aes(x = mC, y = mN,
+                              ymin = mN - 1.96*sdN, 
+                              ymax = mN + 1.96*sdN), 
+                width = 0)+
+  geom_errorbarh(data = fbmeans, 
+                 mapping = aes(x = mC, y = mN,
+                               xmin = mC - 1.96*sdC,
+                               xmax = mC + 1.96*sdC),
+                 height = 0) + 
+  geom_point(data = fbmeans, aes(x = mC, 
+                                 y = mN,
+                                 fill = Year), 
+             color = "black", shape = 22, size = 5,
+             alpha = 0.7, show.legend = FALSE) + 
+  coord_equal()
+print(second.plot)
+
+p.ell <- 0.95
+
+ellipse.plot3 <- first.plot + 
+  stat_ellipse(aes(group =Year, 
+                   fill = Year, 
+                   color = Year), 
+               alpha = 0.25, 
+               level = p.ell,
+               type = "t",
+               geom = "polygon")
+print(ellipse.plot3)
+```
+
 ## Isoscape plots by year + sex + season
 
 ```{r}
@@ -478,7 +541,7 @@ shapiro.test(resid(mC))
 par(mfrow = c(2,2))
 plot(mC)
 
-mN <- lm(N ~ Year + Sex, data = SIA_biopsy)
+mN <- lm(N ~ Year + Sex , data = SIA_biopsy)
 summary(mN)
 
 shapiro.test(resid(mN))
@@ -806,12 +869,6 @@ ellipse.plot3 <- first.plot +
                type = "t",
                geom = "polygon")
 print(ellipse.plot3)
-```
-
-##Try inter-annual trends again with just August/dry season data OR include month as a covariate, especially since season was significant for N
-
-```{r}
-
 ```
 
 
