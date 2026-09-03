@@ -15,6 +15,7 @@ library(GGally)
 library(maps)
 library(rnaturalearth)
 library(sf)
+library(gt)
 
 
 my_theme <- theme_minimal() +
@@ -101,7 +102,7 @@ SIA_full %>%
     .groups = "drop"
   )
 ```
-  
+
 ## When were samples taken?
 
 ```{r}
@@ -144,7 +145,6 @@ ggplot() +
 SIA_full$Location<-as.factor(SIA_full$Location)
 
 ```
-
 
 ## Exploring inter-annual trends in biopsy data
 
@@ -449,7 +449,7 @@ ellipse.plot3 <- first.plot +
 print(ellipse.plot3)
 ```
 
-## Running models 
+## Running models
 
 ```{r}
 #| echo: true
@@ -497,7 +497,6 @@ SIA_biopsy %>%
   ggplot(aes(x = N, y = Mass)) +
   geom_point(size = 5)
 ```
-
 
 ## Next on the list is repeating this for blood samples AND tissue comparison AND considering the above analysis and whether the sample is actually representative of wet/dry
 
@@ -706,7 +705,7 @@ classic.first.plot <- first.plot + theme_classic() +
   scale_colour_viridis_d(end = 0.9)
 print(classic.first.plot)
 
-fbmeans <- SIA_biopsy %>% 
+fbmeans <- SIA_blood %>% 
   group_by(Year, Sex) %>% 
   summarise(count = n(),
             mC = mean(C), 
@@ -809,7 +808,14 @@ ellipse.plot3 <- first.plot +
 print(ellipse.plot3)
 ```
 
-## Running models 
+##Try inter-annual trends again with just August/dry season data OR include month as a covariate, especially since season was significant for N
+
+```{r}
+
+```
+
+
+## Running models
 
 ```{r}
 #| echo: true
@@ -831,6 +837,7 @@ shapiro.test(resid(mN))
 plot(mN)
 
 ```
+
 ```{r}
 #| echo: true
 
@@ -960,7 +967,8 @@ ellipse.plot3 <- first.plot +
   coord_equal()
 print(ellipse.plot3)
 ```
-##Within-individual differences?? 
+
+##Within-individual differences??
 
 ```{r}
 individual_shift <- SIA_both_corrected %>%
@@ -990,10 +998,11 @@ summary(shift_model)
 
 ```
 
-##Can point out a TDF correction required if there's a big mismatch
 ##Explore influence of rainfall or SST
 
-## Explore spatial differences in isotopes?? particularly entrance point. Looks like there is signal. Interestingly looking at satellite tracks individuals appear to go to entrance point first after breeding, and by march/april end up back in the bay
+## Explore spatial differences in isotopes. Looks like there is signal.
+
+#Interestingly looking at satellite tracks individuals appear to go to entrance point first after breeding, and by march/april end up back in the bay
 
 ```{r}
 
@@ -1115,10 +1124,70 @@ summary(lm(C ~ Location, data = SIA_biopsy))
 summary(lm(C ~ Location + Season + Sex, data = SIA_biopsy))
 ```
 
-
 ##Sample size tables for different analyses
 
+```{r}
+sample_table <- SIA_biopsy %>%
+  count(Sex, Year, Season)
+
+wide_data <- sample_table %>%
+  unite("Year_Season", Year, Season, sep = "_") %>%
+  pivot_wider(names_from = Year_Season, values_from = n, values_fill = 0)
+
+col_years <- sample_table %>% 
+  distinct(Year, Season) %>% 
+  arrange(Year, Season) %>%
+  unite("Year_Season", Year, Season, sep = "_", remove = FALSE)
+
+wide_data <- wide_data %>%
+  select(Sex, all_of(col_years$Year_Season))
+
+gt_table <- wide_data %>%
+  gt(rowname_col = "Sex")
+
+gt_table <- wide_data %>%
+  gt(rowname_col = "Sex") %>%
+  cols_label(.list = setNames(
+    as.list(sub("^[0-9]+_", "", col_years$Year_Season)), 
+    col_years$Year_Season
+  ))
+
+# add a spanner per year
+for (yr in unique(col_years$Year)) {
+  yr_cols <- col_years$Year_Season[col_years$Year == yr]
+  gt_table <- gt_table %>%
+    tab_spanner(label = yr, columns = all_of(yr_cols))
+}
 
 
+gt_table
+```
 
-##Try inter-annual trends again with just August/dry season data OR include month as a covariate, especially since season was significant for N
+```{r}
+sample_table <- SIA_blood %>%
+  count(Sex, Month_Year)
+
+wide_data <- sample_table %>%
+  pivot_wider(names_from = Month_Year, values_from = n, values_fill = 0)
+
+wide_data %>%
+  gt(rowname_col = "Sex") %>%
+  cols_label(Sex = "Sex")
+```
+
+```{r}
+
+SIA_full_EP <- SIA_full[which(SIA_full$Location == "EP"), ]
+
+sample_table <- SIA_full_EP %>%
+  count(Sex, Sample_type)
+
+wide_data <- sample_table %>%
+  pivot_wider(names_from = Sample_type, values_from = n, values_fill = 0)
+
+wide_data %>%
+  gt(rowname_col = "Sex") %>%
+  cols_label(Sex = "Sex")
+```
+```
+
