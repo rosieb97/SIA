@@ -125,7 +125,7 @@ SIA_full %>%
 
 ```{r}
 SIA_full$Longitude <- as.numeric(as.character(SIA_full$Longitude))
-SIA_full$Location <- ifelse(SIA_full$Longitude < 122.07, "EP", "RB")
+SIA_full$Location <- ifelse(SIA_full$Longitude < 122.07, "GP", "RB")
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
@@ -1237,9 +1237,9 @@ wide_data %>%
 
 ```{r}
 
-SIA_full_EP <- SIA_full[which(SIA_full$Location == "EP"), ]
+SIA_full_GP <- SIA_full[which(SIA_full$Location == "GP"), ]
 
-sample_table <- SIA_full_EP %>%
+sample_table <- SIA_full_GP %>%
   count(Sex, Sample_type)
 
 wide_data <- sample_table %>%
