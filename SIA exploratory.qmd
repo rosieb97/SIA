@@ -135,7 +135,8 @@ aus_map <- sf::read_sf("~/Documents/Murdoch/Data/Chapter 1/Additional_tracks/Fin
 
 ggplot() +
   geom_sf(data = aus_map, fill = "grey90", color = "grey40") +
-  geom_point(data = SIA_full, aes(x = Longitude, y = Latitude, color = Location),
+  geom_point(data = SIA_full %>% filter(!is.na(Location)), 
+             aes(x = Longitude, y = Latitude, color = Location),
              size = 2) +
   coord_sf(xlim = c(121.9, 122.4),
            ylim = c(-18.3, -17.8)) +
@@ -1063,7 +1064,7 @@ summary(shift_model)
 
 ```{r}
 
-first.plot <- ggplot(data = SIA_blood, 
+first.plot <- ggplot(data = SIA_blood %>% filter(!is.na(Location)), 
                    mapping = aes(x = C, 
                                  y = N)) + 
   geom_point(aes(color = Location), size = 5) +
@@ -1071,6 +1072,8 @@ first.plot <- ggplot(data = SIA_blood,
   ylab(expression(paste(delta^{15}, "N (\u2030)"))) +
   xlab(expression(paste(delta^{13}, "C (\u2030)"))) + 
   theme(text = element_text(size=20))
+
+
 
 classic.first.plot <- first.plot + theme_classic() + 
   theme(text = element_text(size=35)) + 
@@ -1121,7 +1124,7 @@ print(ellipse.plot3)
 
 summary(lm(C ~ Location + Sex + Season, data = SIA_blood))
 
-first.plot <- ggplot(data = SIA_biopsy, 
+first.plot <- ggplot(data = SIA_biopsy %>% filter(!is.na(Location)), 
                    mapping = aes(x = C, 
                                  y = N)) + 
   geom_point(aes(color = Location), size = 5) +
